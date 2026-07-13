@@ -23,6 +23,15 @@ extern int g_pc_model_viewer;
 #include "GBA/gba.h"
 #include "m_vibctl.h"
 
+#ifdef TARGET_ANDROID
+/* Android's libc exposes errno as a macro, but the original controller
+ * structure also has a field named errno. This translation unit only uses
+ * the controller field. */
+#ifdef errno
+#undef errno
+#endif
+#endif
+
 GAME* gamePT = NULL;
 
 static u16 last_button[MAXCONTROLLERS];
