@@ -8,9 +8,7 @@
 #error "This project must be compiled as 32-bit (pointer size != 4 bytes)"
 #endif
 
-#ifndef TARGET_ANDROID
 #define SDL_MAIN_HANDLED
-#endif
 #include <SDL.h>
 #ifdef TARGET_ANDROID
 #include <GLES3/gl3.h>

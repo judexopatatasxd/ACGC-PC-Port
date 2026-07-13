@@ -268,7 +268,11 @@ static int pc_parse_rain_intensity(const char* text) {
     return -1;
 }
 
+#ifdef TARGET_ANDROID
+int SDL_main(int argc, char* argv[]) {
+#else
 int main(int argc, char* argv[]) {
+#endif
 #ifdef TARGET_ANDROID
     /* Java's launcher copies the user's disc image and shaders into the
      * app-private files directory. Keep all relative PC-port paths (rom,
