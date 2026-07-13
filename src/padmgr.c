@@ -8,6 +8,13 @@
 #include "dolphin/pad.h"
 #endif
 
+#ifdef TARGET_ANDROID
+/* Android's libc errno macro conflicts with the original controller field. */
+#ifdef errno
+#undef errno
+#endif
+#endif
+
 static int frame = 0;
 padmgr padmgr_class;
 static padmgr* this = &padmgr_class;
