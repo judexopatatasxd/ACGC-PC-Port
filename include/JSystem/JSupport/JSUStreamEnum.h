@@ -18,6 +18,13 @@ enum JSUStreamSeekFrom { SEEK_SET = 0, SEEK_CUR = 1, SEEK_END = 2 };
 
 enum EIoState { GOOD = 0, EOF = 1 };
 
+#ifdef __cplusplus
+static const JSUStreamSeekFrom JSU_SEEK_SET = SEEK_SET;
+static const JSUStreamSeekFrom JSU_SEEK_CUR = SEEK_CUR;
+static const JSUStreamSeekFrom JSU_SEEK_END = SEEK_END;
+static const EIoState JSU_EOF = EOF;
+#endif
+
 #ifdef TARGET_PC
 #pragma pop_macro("EOF")
 #pragma pop_macro("SEEK_END")
