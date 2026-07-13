@@ -155,7 +155,7 @@ void* JKRDvdRipper::loadToMainRAM(JKRDvdFile* file, u8* buf, JKRExpandSwitch exp
         }
 
         /* Looks like a bug here */
-#ifndef FIXES
+#ifndef BUGFIXES
         if (DVDReadPrio(file->getFileInfo(), mem, fileSize, 0, 2) < 0) {
             if (JKRDvdRipper::errorRetry == false) {
                 VIWaitForRetrace();
@@ -403,7 +403,7 @@ static u8* nextSrcData(u8* nowData) {
             break;
         }
         // Oopsies, forgot to call the function
-#ifndef FIXES
+#ifndef BUGFIXES
         if (JKRDvdRipper::isErrorRetry == false) {
             return nullptr;
         }
