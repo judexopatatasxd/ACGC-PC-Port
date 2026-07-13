@@ -395,6 +395,11 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-Dnullptr=NULL>)
 # =============================================================================
 # Decomp code: suppress all warnings (fires heavily on decompiled code)
 set(DECOMP_WARN_FLAGS "-w;-fpermissive")
+if(ANDROID)
+    # Clang treats legacy decomp constructs such as `return;` in a non-void
+    # function as hard errors. They are tolerated by the original PC toolchain.
+    list(APPEND DECOMP_WARN_FLAGS "-Wno-return-type")
+endif()
 set_source_files_properties(${GAME_C_SOURCES} ${GAME_CXX_SOURCES}
     PROPERTIES COMPILE_OPTIONS "${DECOMP_WARN_FLAGS}"
 )
