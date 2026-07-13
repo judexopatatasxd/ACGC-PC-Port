@@ -11,6 +11,10 @@
 #include "pc_settings_menu.h"
 #include "pc_profiler.h"
 #include "m_kankyo.h"
+#ifdef TARGET_ANDROID
+#include <SDL_system.h>
+#include <unistd.h>
+#endif
 
 /* prefer discrete GPU on laptops */
 #ifdef _WIN32
@@ -51,11 +55,16 @@ void pc_platform_init(void) {
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+#ifdef TARGET_ANDROID
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-#ifdef PC_ENHANCEMENTS
+#if defined(PC_ENHANCEMENTS) && !defined(TARGET_ANDROID)
     if (g_pc_settings.msaa > 0) {
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, g_pc_settings.msaa);
@@ -91,6 +100,7 @@ void pc_platform_init(void) {
         exit(1);
     }
 
+#ifndef TARGET_ANDROID
     if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
         fprintf(stderr, "gladLoadGL failed\n");
         SDL_GL_DeleteContext(g_pc_gl_context);
@@ -98,12 +108,13 @@ void pc_platform_init(void) {
         SDL_Quit();
         exit(1);
     }
+#endif
 
     SDL_GL_SetSwapInterval(g_pc_settings.vsync);
 
     pc_platform_update_window_size();
 
-#ifdef PC_ENHANCEMENTS
+#if defined(PC_ENHANCEMENTS) && !defined(TARGET_ANDROID)
     if (g_pc_settings.msaa > 0) {
         glEnable(GL_MULTISAMPLE);
     }
@@ -258,6 +269,21 @@ static int pc_parse_rain_intensity(const char* text) {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef TARGET_ANDROID
+    /* Java's launcher copies the user's disc image and shaders into the
+     * app-private files directory. Keep all relative PC-port paths (rom,
+     * save, settings.ini, shader_cache.bin) inside that directory. */
+    {
+        const char* storage = SDL_AndroidGetInternalStoragePath();
+        if (!storage || chdir(storage) != 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Unable to enter Android internal storage: %s",
+                         storage ? storage : "(null)");
+            return 1;
+        }
+    }
+#endif
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             printf("Usage: AnimalCrossing [options]\n");

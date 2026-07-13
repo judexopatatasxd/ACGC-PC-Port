@@ -58,6 +58,18 @@ pacman -S mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-SDL2 mingw-w64-
    pc/build32/bin/AnimalCrossing.exe
    ```
 
+### Android (experimental)
+
+An SDL2/NDK Android project is available in [`android/`](android/README.md). It uses OpenGL ES 3.0, an Android ROM picker, private save storage, and an on-screen multi-touch GameCube controller. The current Android target is `armeabi-v7a` because the decompilation stores live pointers in 32-bit fields.
+
+```bash
+git submodule update --init --recursive
+cd android
+./gradlew assembleDebug
+```
+
+No ROM or copyrighted game assets are bundled in the APK. The user selects their own compatible USA Rev 0 disc image on first launch.
+
 ## Controls
 
 Keyboard bindings are customizable via `keybindings.ini` (next to the executable). Mouse buttons (Mouse1/Mouse2/Mouse3) can also be assigned.

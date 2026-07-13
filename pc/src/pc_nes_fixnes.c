@@ -33,7 +33,11 @@
 
 /* Now include GL via SDL2 (avoid pc_platform.h which pulls in game types.h) */
 #include <SDL2/SDL.h>
+#ifdef TARGET_ANDROID
+#include <GLES3/gl3.h>
+#else
 #include <glad/gl.h>
+#endif
 #include "fm2play.h"
 #include "audio.h"
 
@@ -115,13 +119,23 @@ static GLuint fixnes_compile_shader(GLenum type, const char *src) {
 
 static void fixnes_init_gl(void) {
     const char *vs =
+#ifdef TARGET_ANDROID
+        "#version 300 es\n"
+        "precision highp float;\n"
+#else
         "#version 330 core\n"
+#endif
         "layout(location=0) in vec2 pos;\n"
         "layout(location=1) in vec2 uv;\n"
         "out vec2 v_uv;\n"
         "void main() { gl_Position = vec4(pos, 0, 1); v_uv = uv; }\n";
     const char *fs =
+#ifdef TARGET_ANDROID
+        "#version 300 es\n"
+        "precision highp float;\n"
+#else
         "#version 330 core\n"
+#endif
         "in vec2 v_uv;\n"
         "out vec4 fragColor;\n"
         "uniform sampler2D tex;\n"
@@ -389,13 +403,17 @@ void pc_fixnes_render_frame(uint16_t *fb) {
     pc_gx_draw_pending(); /* NES uses its own GL pipeline */
     if (!fixnes_shader) fixnes_init_gl();
 
-    /* Upload framebuffer — fixNES outputs RGB565 with COL_TEX_BSWAP
-     * (R in low bits) — upload with GL_UNSIGNED_SHORT_5_6_5_REV.
-     * Skip top 8 rows (often garbage), show 224 lines. */
+    /* Skip top 8 rows (often garbage), show 224 lines. Desktop fixNES uses
+     * reversed RGB565; Android produces standard GLES RGB565 directly. */
     glBindTexture(GL_TEXTURE_2D, fixnes_texture);
     if (g_pc_profile_enabled) pc_profiler_add_count_texture_bind_slow();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 224, 0,
-                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5_REV, fb + 256 * 8);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 224, 0, GL_RGB,
+#ifdef TARGET_ANDROID
+                 GL_UNSIGNED_SHORT_5_6_5,
+#else
+                 GL_UNSIGNED_SHORT_5_6_5_REV,
+#endif
+                 fb + 256 * 8);
 
     /* 0 = stretch to window, 1 = centered 4:3 with pillar/letterbox. */
     int win_w = g_pc_window_w;

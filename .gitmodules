@@ -1,0 +1,5 @@
+[submodule "android/SDL"]
+	path = android/SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-2.30.11
+	ignore = dirty

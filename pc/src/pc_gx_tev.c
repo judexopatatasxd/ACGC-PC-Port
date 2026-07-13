@@ -33,6 +33,27 @@ static char* load_shader(const char* filename) {
     snprintf(path, sizeof(path), "shaders/%s", filename);
     char* src = load_text_file(path);
     if (src) {
+#ifdef TARGET_ANDROID
+        /* Desktop shaders are kept as the single source of truth. Convert the
+         * version directive at runtime for OpenGL ES 3.0. */
+        static const char desktop_version[] = "#version 330 core";
+        if (strncmp(src, desktop_version, sizeof(desktop_version) - 1) == 0) {
+            const char* body = strchr(src, '\n');
+            const char gles_header[] =
+                "#version 300 es\n"
+                "precision highp float;\n"
+                "precision highp int;\n";
+            if (body) {
+                size_t size = strlen(gles_header) + strlen(body + 1) + 1;
+                char* gles = (char*)malloc(size);
+                if (gles) {
+                    snprintf(gles, size, "%s%s", gles_header, body + 1);
+                    free(src);
+                    src = gles;
+                }
+            }
+        }
+#endif
         printf("[PC/TEV] Loaded shader: %s\n", path);
     } else {
         fprintf(stderr, "FATAL: Could not load shader: %s\n", path);
@@ -362,7 +383,15 @@ static char* build_specialized_source(const PCGXShaderKey* k) {
     if (!out) return NULL;
 
     size_t pos = 0;
+#ifdef TARGET_ANDROID
+    {
+        static const char version[] = "#version 300 es\n";
+        memcpy(out + pos, version, sizeof(version) - 1);
+        pos += sizeof(version) - 1;
+    }
+#else
     memcpy(out + pos, "#version 330 core\n", 18); pos += 18;
+#endif
     memcpy(out + pos, consts, (size_t)clen); pos += (size_t)clen;
 
     const char* p = s_frag_base;
