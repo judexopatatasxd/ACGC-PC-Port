@@ -388,7 +388,7 @@ int main(int argc, char* argv[]) {
 #else
     {
         Dl_info dl;
-        if (dladdr((void*)main, &dl) && dl.dli_fbase) {
+        if (dladdr((void*)pc_platform_init, &dl) && dl.dli_fbase) {
             pc_image_base = (unsigned int)(uintptr_t)dl.dli_fbase;
             Elf32_Ehdr* ehdr = (Elf32_Ehdr*)dl.dli_fbase;
             Elf32_Phdr* phdr = (Elf32_Phdr*)((char*)dl.dli_fbase + ehdr->e_phoff);
