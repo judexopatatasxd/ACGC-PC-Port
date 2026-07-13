@@ -14,6 +14,7 @@ void GXSetTevAlphaOp(u32 stage, u32 op, u32 bias, u32 scale, GXBool clamp, u32 o
 
 typedef struct { u8 r, g, b, a; } GXColor;
 
+#ifndef TARGET_ANDROID
 #undef glUniform1i
 #undef glUniform2i
 #undef glUniform3i
@@ -47,6 +48,37 @@ typedef struct { u8 r, g, b, a; } GXColor;
 #define glUniform3fv(...)       (pc_profiler_add_count_uniform(), glad_glUniform3fv(__VA_ARGS__))
 #define glUniformMatrix3fv(...) (pc_profiler_add_count_uniform(), glad_glUniformMatrix3fv(__VA_ARGS__))
 #define glUniformMatrix4fv(...) (pc_profiler_add_count_uniform(), glad_glUniformMatrix4fv(__VA_ARGS__))
+#endif
+
+/* OpenGL ES requires transpose=GL_FALSE. The game matrices are row-major,
+ * so Android converts them explicitly before upload. */
+static void pc_gx_uniform_matrix4(GLint location, const float* row_major) {
+#ifdef TARGET_ANDROID
+    float column_major[16];
+    for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 4; col++) {
+            column_major[col * 4 + row] = row_major[row * 4 + col];
+        }
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, column_major);
+#else
+    glUniformMatrix4fv(location, 1, GL_TRUE, row_major);
+#endif
+}
+
+static void pc_gx_uniform_matrix3(GLint location, const float* row_major) {
+#ifdef TARGET_ANDROID
+    float column_major[9];
+    for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+            column_major[col * 3 + row] = row_major[row * 3 + col];
+        }
+    }
+    glUniformMatrix3fv(location, 1, GL_FALSE, column_major);
+#else
+    glUniformMatrix3fv(location, 1, GL_TRUE, row_major);
+#endif
+}
 
 /* --- Global GX State --- */
 PCGXState g_gx;
@@ -398,7 +430,11 @@ void pc_gx_begin_frame(void) {
     glViewport(0, 0, g_pc_window_w, g_pc_window_h);
     pc_gx_viewport_state_invalidate();
 #endif
+#ifdef TARGET_ANDROID
+    glClearDepthf((GLfloat)g_gx.clear_depth);
+#else
     glClearDepth(g_gx.clear_depth);
+#endif
     glClearColor(g_gx.clear_color[0], g_gx.clear_color[1], g_gx.clear_color[2], g_gx.clear_color[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     pc_profiler_add_time(PC_PROF_TIMER_GX_BEGIN, prof_start);
@@ -776,7 +812,7 @@ void pc_gx_flush_vertices(void) {
 
         if (dirty & PC_GX_DIRTY_PROJECTION) {
             loc = UL(projection);
-            if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_TRUE, (float*)g_gx.projection_mtx);
+            if (loc >= 0) pc_gx_uniform_matrix4(loc, (float*)g_gx.projection_mtx);
         }
 
         if (dirty & PC_GX_DIRTY_MODELVIEW) {
@@ -788,10 +824,10 @@ void pc_gx_flush_vertices(void) {
                 mv44[ 4] = src[4]; mv44[ 5] = src[5]; mv44[ 6] = src[6]; mv44[ 7] = src[7];
                 mv44[ 8] = src[8]; mv44[ 9] = src[9]; mv44[10] = src[10]; mv44[11] = src[11];
                 mv44[12] = 0.0f;   mv44[13] = 0.0f;   mv44[14] = 0.0f;    mv44[15] = 1.0f;
-                glUniformMatrix4fv(loc, 1, GL_TRUE, mv44);
+                pc_gx_uniform_matrix4(loc, mv44);
             }
             loc = UL(normal_mtx);
-            if (loc >= 0) glUniformMatrix3fv(loc, 1, GL_TRUE, (const float*)g_gx.nrm_mtx[g_gx.current_mtx]);
+            if (loc >= 0) pc_gx_uniform_matrix3(loc, (const float*)g_gx.nrm_mtx[g_gx.current_mtx]);
         }
 
         if (dirty & PC_GX_DIRTY_TEV_COLORS) {
@@ -1358,7 +1394,11 @@ void GXSetViewport(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz) {
 
     pc_gx_draw_pending(); /* glViewport is not dirty-tracked */
     glViewport(gl_x, gl_y, gl_w, gl_h);
+#ifdef TARGET_ANDROID
+    glDepthRangef(nearz, farz);
+#else
     glDepthRange((double)nearz, (double)farz);
+#endif
     s_gl_viewport.valid = 1;
     s_gl_viewport.x = gl_x;
     s_gl_viewport.y = gl_y;
@@ -1982,7 +2022,16 @@ void GXSetTexCoordGen2(u32 dst, u32 func, u32 src, u32 mtx, GXBool normalize, u3
     }
 }
 void GXSetLineWidth(u8 width, u32 texOffsets) { glLineWidth(width / 16.0f); }
-void GXSetPointSize(u8 size, u32 texOffsets) { glPointSize(size / 16.0f); }
+void GXSetPointSize(u8 size, u32 texOffsets) {
+#ifdef TARGET_ANDROID
+    /* OpenGL ES controls point size from the vertex shader. The game rarely
+     * emits GX_POINTS, so keep the API as a harmless state stub for now. */
+    (void)size;
+    (void)texOffsets;
+#else
+    glPointSize(size / 16.0f);
+#endif
+}
 void GXEnableTexOffsets(u32 coord, GXBool line, GXBool point) {
     (void)coord; (void)line; (void)point;
 }
@@ -2410,4 +2459,3 @@ void GXReadXfRasMetric(u32* xf_wait_in, u32* xf_wait_out, u32* ras_busy, u32* cl
 /* --- Verify --- */
 void GXSetVerifyLevel(u32 level) { (void)level; }
 void* GXSetVerifyCallback(void* cb) { return NULL; }
-
