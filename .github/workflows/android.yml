@@ -29,6 +29,10 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          # This port and the pinned SDL2 submodule use the same older,
+          # known-good wrapper JAR, which is not in the action's checksum list.
+          validate-wrappers: false
 
       - name: Build debug APK
         working-directory: android
