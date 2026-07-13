@@ -22,6 +22,18 @@ extern "C" {
 
 typedef u64 Z_OSTime;
 
+#ifdef TARGET_ANDROID
+/* Bionic exposes these as function-like macros, but the decompilation uses
+ * the original libultra symbols. Keep the declarations and calls intact so
+ * the PC compatibility layer can provide them. */
+#ifdef bcopy
+#undef bcopy
+#endif
+#ifdef bzero
+#undef bzero
+#endif
+#endif
+
 int bcmp(void* v1, void* v2, u32 size);
 void bcopy(void* src, void* dst, size_t n);
 void bzero(void* ptr, size_t size);
