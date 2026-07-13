@@ -1392,7 +1392,17 @@ void Jam_UpdateTrackAll(seqp_* track)
  * Address:	80010E00
  * Size:	00000C
  */
-static void OSf32tos8(register f32* in, volatile register s8* out)
+static void OSf32tos8(
+#ifndef TARGET_PC
+    register
+#endif
+    f32* in,
+#ifndef TARGET_PC
+    volatile register
+#else
+    volatile
+#endif
+    s8* out)
 {
     *out = __OSf32tos8(*in);
 }
