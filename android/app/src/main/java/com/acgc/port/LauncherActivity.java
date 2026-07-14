@@ -39,6 +39,9 @@ public final class LauncherActivity extends Activity {
         super.onCreate(state);
         buildUi();
         refreshState();
+        if (state == null && findRom() != null) {
+            playButton.postDelayed(this::startGame, 180);
+        }
     }
 
     @Override
@@ -66,7 +69,7 @@ public final class LauncherActivity extends Activity {
         root.setBackgroundColor(Color.rgb(16, 23, 22));
 
         TextView title = new TextView(this);
-        title.setText("Animal Crossing\nAndroid Port");
+        title.setText("Animal Crossing\nPort Android");
         title.setTextColor(Color.WHITE);
         title.setTextSize(31);
         title.setGravity(Gravity.CENTER);
@@ -131,7 +134,7 @@ public final class LauncherActivity extends Activity {
         root.addView(playButton, playParams);
 
         TextView note = new TextView(this);
-        note.setText("Los guardados y ajustes quedan dentro del almacenamiento privado de la app. Los controles táctiles aparecen al iniciar.");
+        note.setText("La ROM queda recordada y el juego iniciará directamente la próxima vez. Usa el botón ⚙ dentro del juego para ocultar, mover o restaurar los controles.");
         note.setTextColor(Color.rgb(143, 164, 157));
         note.setTextSize(13);
         note.setGravity(Gravity.CENTER);

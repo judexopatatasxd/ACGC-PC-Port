@@ -1,6 +1,7 @@
 package com.acgc.port;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -19,17 +20,35 @@ import java.util.Set;
 
 /** Transparent multi-touch controls that emit ordinary Android key events into SDL. */
 public final class VirtualControllerView extends View {
+    private static final String PREFS_NAME = "controller_settings";
+    private static final String PREF_VISIBLE = "controls_visible";
+    private static final String POSITION_PREFIX = "position_";
+    private static final String[] CONTROL_IDS = {
+            "STICK", "D", "C", "A", "B", "X", "Y", "L", "R", "Z", "START"
+    };
+
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final List<Control> controls = new ArrayList<Control>();
     private final SparseArray<Control> pointers = new SparseArray<Control>();
     private final Set<Integer> pressedKeys = new HashSet<Integer>();
+    private final SharedPreferences preferences;
 
     private float unit;
+    private int viewWidth;
+    private int viewHeight;
+    private boolean controlsVisible;
+    private boolean editMode;
+    private Control draggedControl;
+    private int draggedPointer = -1;
+    private float dragOffsetX;
+    private float dragOffsetY;
 
     public VirtualControllerView(Context context) {
         super(context);
+        preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        controlsVisible = preferences.getBoolean(PREF_VISIBLE, true);
         setFocusable(false);
         setClickable(true);
         fill.setStyle(Paint.Style.FILL);
@@ -42,44 +61,101 @@ public final class VirtualControllerView extends View {
         setBackgroundColor(Color.TRANSPARENT);
     }
 
+    public boolean areControlsVisible() {
+        return controlsVisible;
+    }
+
+    public void setControlsVisible(boolean visible) {
+        controlsVisible = visible;
+        preferences.edit().putBoolean(PREF_VISIBLE, visible).apply();
+        if (!visible) releaseAll();
+        setVisibility(visible || editMode ? View.VISIBLE : View.GONE);
+        invalidate();
+    }
+
+    public boolean isEditMode() {
+        return editMode;
+    }
+
+    public void setEditMode(boolean editing) {
+        releaseAll();
+        editMode = editing;
+        draggedControl = null;
+        draggedPointer = -1;
+        setVisibility(editing || controlsVisible ? View.VISIBLE : View.GONE);
+        invalidate();
+    }
+
+    public void resetLayout() {
+        SharedPreferences.Editor editor = preferences.edit();
+        for (String id : CONTROL_IDS) {
+            editor.remove(positionKey(id, "x"));
+            editor.remove(positionKey(id, "y"));
+        }
+        editor.apply();
+        if (viewWidth > 0 && viewHeight > 0) rebuildControls(viewWidth, viewHeight);
+        invalidate();
+    }
+
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
+        viewWidth = width;
+        viewHeight = height;
+        rebuildControls(width, height);
+    }
+
+    private void rebuildControls(int width, int height) {
         releaseAll();
         controls.clear();
+        draggedControl = null;
+        draggedPointer = -1;
         unit = Math.min(width, height);
 
         float mainRadius = unit * 0.145f;
         float smallRadius = unit * 0.087f;
         float buttonRadius = unit * 0.066f;
 
-        controls.add(Control.pad("STICK", width * 0.15f, height * 0.70f, mainRadius,
+        addControl(Control.pad("STICK", mainRadius,
                 KeyEvent.KEYCODE_W, KeyEvent.KEYCODE_S,
-                KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_D));
-        controls.add(Control.pad("D", width * 0.36f, height * 0.75f, smallRadius,
+                KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_D), 0.15f, 0.70f);
+        addControl(Control.pad("D", smallRadius,
                 KeyEvent.KEYCODE_I, KeyEvent.KEYCODE_K,
-                KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_L));
-        controls.add(Control.pad("C", width * 0.64f, height * 0.76f, smallRadius,
+                KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_L), 0.36f, 0.75f);
+        addControl(Control.pad("C", smallRadius,
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT));
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT), 0.64f, 0.76f);
 
-        controls.add(Control.button("A", width * 0.88f, height * 0.68f,
-                buttonRadius * 1.12f, KeyEvent.KEYCODE_SPACE));
-        controls.add(Control.button("B", width * 0.78f, height * 0.79f,
-                buttonRadius, KeyEvent.KEYCODE_SHIFT_LEFT));
-        controls.add(Control.button("X", width * 0.79f, height * 0.57f,
-                buttonRadius, KeyEvent.KEYCODE_X));
-        controls.add(Control.button("Y", width * 0.69f, height * 0.68f,
-                buttonRadius, KeyEvent.KEYCODE_Y));
+        addControl(Control.button("A", buttonRadius * 1.12f, KeyEvent.KEYCODE_SPACE),
+                0.88f, 0.68f);
+        addControl(Control.button("B", buttonRadius, KeyEvent.KEYCODE_SHIFT_LEFT),
+                0.78f, 0.79f);
+        addControl(Control.button("X", buttonRadius, KeyEvent.KEYCODE_X),
+                0.79f, 0.57f);
+        addControl(Control.button("Y", buttonRadius, KeyEvent.KEYCODE_Y),
+                0.69f, 0.68f);
 
-        controls.add(Control.button("L", width * 0.11f, height * 0.12f,
-                buttonRadius * 0.92f, KeyEvent.KEYCODE_Q));
-        controls.add(Control.button("R", width * 0.89f, height * 0.12f,
-                buttonRadius * 0.92f, KeyEvent.KEYCODE_E));
-        controls.add(Control.button("Z", width * 0.76f, height * 0.12f,
-                buttonRadius * 0.78f, KeyEvent.KEYCODE_Z));
-        controls.add(Control.button("START", width * 0.50f, height * 0.12f,
-                buttonRadius * 0.82f, KeyEvent.KEYCODE_ENTER));
+        addControl(Control.button("L", buttonRadius * 0.92f, KeyEvent.KEYCODE_Q),
+                0.11f, 0.12f);
+        addControl(Control.button("R", buttonRadius * 0.92f, KeyEvent.KEYCODE_E),
+                0.89f, 0.12f);
+        addControl(Control.button("Z", buttonRadius * 0.78f, KeyEvent.KEYCODE_Z),
+                0.76f, 0.12f);
+        addControl(Control.button("START", buttonRadius * 0.82f, KeyEvent.KEYCODE_ENTER),
+                0.50f, 0.12f);
+    }
+
+    private void addControl(Control control, float defaultX, float defaultY) {
+        float normalizedX = preferences.getFloat(positionKey(control.label, "x"), defaultX);
+        float normalizedY = preferences.getFloat(positionKey(control.label, "y"), defaultY);
+        control.cx = normalizedX * viewWidth;
+        control.cy = normalizedY * viewHeight;
+        clampToScreen(control);
+        controls.add(control);
+    }
+
+    private String positionKey(String id, String axis) {
+        return POSITION_PREFIX + id + "_" + axis;
     }
 
     @Override
@@ -90,8 +166,12 @@ public final class VirtualControllerView extends View {
     }
 
     private void drawControl(Canvas canvas, Control control) {
-        int alpha = control.activePointer >= 0 ? 150 : 78;
+        int alpha = editMode ? (control.activePointer >= 0 ? 205 : 135)
+                : (control.activePointer >= 0 ? 150 : 78);
         fill.setColor(Color.argb(alpha, 17, 27, 25));
+        stroke.setColor(editMode
+                ? Color.argb(230, 114, 214, 161)
+                : Color.argb(175, 255, 255, 255));
         canvas.drawCircle(control.cx, control.cy, control.radius, fill);
         canvas.drawCircle(control.cx, control.cy, control.radius, stroke);
 
@@ -108,6 +188,8 @@ public final class VirtualControllerView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (editMode) return handleEditTouch(event);
+
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
             int index = event.getActionIndex();
@@ -134,6 +216,57 @@ public final class VirtualControllerView extends View {
             invalidate();
         }
         return true;
+    }
+
+    private boolean handleEditTouch(MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            int index = event.getActionIndex();
+            draggedPointer = event.getPointerId(index);
+            draggedControl = findControl(event.getX(index), event.getY(index));
+            if (draggedControl != null) {
+                dragOffsetX = draggedControl.cx - event.getX(index);
+                dragOffsetY = draggedControl.cy - event.getY(index);
+                draggedControl.activePointer = draggedPointer;
+                invalidate();
+            }
+        } else if (action == MotionEvent.ACTION_MOVE && draggedControl != null) {
+            int index = event.findPointerIndex(draggedPointer);
+            if (index >= 0) {
+                draggedControl.cx = event.getX(index) + dragOffsetX;
+                draggedControl.cy = event.getY(index) + dragOffsetY;
+                clampToScreen(draggedControl);
+                invalidate();
+            }
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            finishDrag(true);
+        }
+        return true;
+    }
+
+    private void finishDrag(boolean save) {
+        if (draggedControl != null) {
+            draggedControl.activePointer = -1;
+            if (save && viewWidth > 0 && viewHeight > 0) {
+                preferences.edit()
+                        .putFloat(positionKey(draggedControl.label, "x"),
+                                draggedControl.cx / viewWidth)
+                        .putFloat(positionKey(draggedControl.label, "y"),
+                                draggedControl.cy / viewHeight)
+                        .apply();
+            }
+        }
+        draggedControl = null;
+        draggedPointer = -1;
+        invalidate();
+    }
+
+    private void clampToScreen(Control control) {
+        float padding = 4f * getResources().getDisplayMetrics().density;
+        float marginX = Math.min(control.radius + padding, viewWidth * 0.48f);
+        float marginY = Math.min(control.radius + padding, viewHeight * 0.48f);
+        control.cx = Math.max(marginX, Math.min(viewWidth - marginX, control.cx));
+        control.cy = Math.max(marginY, Math.min(viewHeight - marginY, control.cy));
     }
 
     private Control findControl(float x, float y) {
@@ -199,8 +332,8 @@ public final class VirtualControllerView extends View {
 
         final int kind;
         final String label;
-        final float cx;
-        final float cy;
+        float cx;
+        float cy;
         final float radius;
         final int key;
         final int up;
@@ -230,13 +363,13 @@ public final class VirtualControllerView extends View {
             this.right = right;
         }
 
-        static Control button(String label, float x, float y, float radius, int key) {
-            return new Control(BUTTON, label, x, y, radius, key, 0, 0, 0, 0);
+        static Control button(String label, float radius, int key) {
+            return new Control(BUTTON, label, 0f, 0f, radius, key, 0, 0, 0, 0);
         }
 
-        static Control pad(String label, float x, float y, float radius,
+        static Control pad(String label, float radius,
                            int up, int down, int left, int right) {
-            return new Control(PAD, label, x, y, radius, 0, up, down, left, right);
+            return new Control(PAD, label, 0f, 0f, radius, 0, up, down, left, right);
         }
 
         void update(float x, float y, VirtualControllerView view) {

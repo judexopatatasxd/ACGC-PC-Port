@@ -37,8 +37,10 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 The launcher asks the user to select their own disc image through Android's Storage Access Framework. It copies the selected file into the app's private storage, along with the runtime shaders. Save data, settings, and shader caches remain private to the app.
 
-The game activity includes transparent multi-touch controls for the main stick, D-pad, C-stick, A/B/X/Y, L/R/Z, and Start. SDL2 gamepads and physical keyboards continue to work.
+After the first valid disc image is copied, later cold launches start the game directly without asking for the ROM again. The in-game **⚙** button returns to the ROM selector when needed.
+
+The game activity uses edge-to-edge immersive mode, including supported display cutouts. It includes transparent multi-touch controls for the main stick, D-pad, C-stick, A/B/X/Y, L/R/Z, and Start. Open **⚙** to hide the controls, drag them to custom positions, or restore the default layout. Visibility and positions are remembered. SDL2 gamepads and physical keyboards continue to work.
 
 ## GitHub Actions
 
-The `Build Android APK` workflow checks out SDL2, builds the `armeabi-v7a` APK, and uploads it as a workflow artifact. Run it manually from the repository's Actions tab after pushing this branch to a fork or a repository where you have write access.
+The `Build Android APK` workflow checks out SDL2, builds the `armeabi-v7a` APK, and uploads `Animal-Crossing-Port-Android.apk` inside the `Animal-Crossing-Port-Android` workflow artifact. Run it manually from the repository's Actions tab after pushing this branch to a fork or a repository where you have write access.

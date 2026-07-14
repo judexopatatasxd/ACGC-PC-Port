@@ -60,7 +60,7 @@ pacman -S mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-SDL2 mingw-w64-
 
 ### Android (experimental)
 
-An SDL2/NDK Android project is available in [`android/`](android/README.md). It uses OpenGL ES 3.0, an Android ROM picker, private save storage, and an on-screen multi-touch GameCube controller. The current Android target is `armeabi-v7a` because the decompilation stores live pointers in 32-bit fields.
+An SDL2/NDK Android project is available in [`android/`](android/README.md). It uses OpenGL ES 3.0, an Android ROM picker with automatic reuse on later launches, private save storage, edge-to-edge cutout support, and a movable/hideable on-screen multi-touch GameCube controller. The current Android target is `armeabi-v7a` because the decompilation stores live pointers in 32-bit fields.
 
 ```bash
 git submodule update --init --recursive
