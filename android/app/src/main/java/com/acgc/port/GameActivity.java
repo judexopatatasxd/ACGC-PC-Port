@@ -1,6 +1,7 @@
 package com.acgc.port;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -114,6 +115,7 @@ public final class GameActivity extends SDLActivity {
                 visibilityAction,
                 "Mover botones",
                 "Restablecer posiciones",
+                "ROMs de NES y texturas",
                 "Volver al selector de ROM"
         };
 
@@ -137,6 +139,9 @@ public final class GameActivity extends SDLActivity {
                         controller.resetLayout();
                         Toast.makeText(this, "Posiciones restauradas", Toast.LENGTH_SHORT).show();
                     } else if (which == 3) {
+                        startActivity(new Intent(this, ContentManagerActivity.class));
+                        finish();
+                    } else if (which == 4) {
                         finish();
                     }
                 })

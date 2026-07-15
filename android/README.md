@@ -41,6 +41,20 @@ After the first valid disc image is copied, later cold launches start the game d
 
 The game activity uses edge-to-edge immersive mode, including supported display cutouts. It includes transparent multi-touch controls for the main stick, D-pad, C-stick, A/B/X/Y, L/R/Z, and Start. Open **⚙** to hide the controls, drag them to custom positions, or restore the default layout. Visibility and positions are remembered. SDL2 gamepads and physical keyboards continue to work.
 
+The launcher and the in-game **⚙** menu also open **ROMs de NES y texturas**:
+
+- Files with extension .nes and a valid iNES header can be added or deleted. They are stored in the app's private nes_roms directory and appear in Animal Crossing's NES cartridge list.
+- A ZIP containing Dolphin-compatible .dds files can be installed or removed. Installation safely replaces the private texture_pack directory and clears its cache.
+
+## Stable APK signing
+
+The workflow can sign builds with a private PKCS#12 key. Add these repository secrets:
+
+- ACGC_SIGNING_KEY: the PKCS#12 file encoded as a single-line Base64 value.
+- ACGC_SIGNING_PASSWORD: the key password.
+
+The key alias must be acgc-public. If either secret is absent, GitHub Actions falls back to Android's temporary debug signature.
+
 ## GitHub Actions
 
 The `Build Android APK` workflow checks out SDL2, builds the `armeabi-v7a` APK, and uploads `Animal-Crossing-Port-Android.apk` inside the `Animal-Crossing-Port-Android` workflow artifact. Run it manually from the repository's Actions tab after pushing this branch to a fork or a repository where you have write access.

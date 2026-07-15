@@ -34,6 +34,17 @@ jobs:
           # known-good wrapper JAR, which is not in the action's checksum list.
           validate-wrappers: false
 
+      - name: Prepare stable signing key
+        env:
+          ACGC_SIGNING_KEY: ${{ secrets.ACGC_SIGNING_KEY }}
+          ACGC_SIGNING_PASSWORD: ${{ secrets.ACGC_SIGNING_PASSWORD }}
+        run: |
+          if [ -n "$ACGC_SIGNING_KEY" ] && [ -n "$ACGC_SIGNING_PASSWORD" ]; then
+            printf '%s' "$ACGC_SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/acgc-signing.p12"
+            echo "ACGC_KEYSTORE_PATH=$RUNNER_TEMP/acgc-signing.p12" >> "$GITHUB_ENV"
+            echo "ACGC_KEYSTORE_PASSWORD=$ACGC_SIGNING_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew --no-daemon assembleDebug

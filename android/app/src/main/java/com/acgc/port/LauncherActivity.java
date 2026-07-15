@@ -32,6 +32,7 @@ public final class LauncherActivity extends Activity {
     private TextView status;
     private Button playButton;
     private Button selectButton;
+    private Button contentButton;
     private ProgressBar progress;
 
     @Override
@@ -133,8 +134,21 @@ public final class LauncherActivity extends Activity {
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(58));
         root.addView(playButton, playParams);
 
+        contentButton = new Button(this);
+        contentButton.setText("ROMs de NES y texturas");
+        contentButton.setTextSize(16);
+        contentButton.setTextColor(Color.WHITE);
+        contentButton.setAllCaps(false);
+        contentButton.setBackground(rounded(Color.rgb(42, 67, 60), 16));
+        contentButton.setOnClickListener(view ->
+                startActivity(new Intent(LauncherActivity.this, ContentManagerActivity.class)));
+        LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(58));
+        contentParams.setMargins(0, dp(10), 0, 0);
+        root.addView(contentButton, contentParams);
+
         TextView note = new TextView(this);
-        note.setText("La ROM queda recordada y el juego iniciará directamente la próxima vez. Usa el botón ⚙ dentro del juego para ocultar, mover o restaurar los controles.");
+        note.setText("La ROM queda recordada. Usa ⚙ dentro del juego para gestionar las ROMs de NES, las texturas o los controles táctiles.");
         note.setTextColor(Color.rgb(143, 164, 157));
         note.setTextSize(13);
         note.setGravity(Gravity.CENTER);
@@ -337,6 +351,7 @@ public final class LauncherActivity extends Activity {
     private void setBusy(boolean busy, String message) {
         progress.setVisibility(busy ? View.VISIBLE : View.GONE);
         selectButton.setEnabled(!busy);
+        contentButton.setEnabled(!busy);
         playButton.setEnabled(!busy && findRom() != null);
         status.setText(message);
     }

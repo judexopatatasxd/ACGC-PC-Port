@@ -2,16 +2,31 @@ plugins {
     id "com.android.application"
 }
 
+def stableKeystorePath = System.getenv("ACGC_KEYSTORE_PATH")
+def stableKeystorePassword = System.getenv("ACGC_KEYSTORE_PASSWORD")
+
 android {
     namespace "com.acgc.port"
     compileSdk 34
+
+    signingConfigs {
+        stable {
+            if (stableKeystorePath && stableKeystorePassword) {
+                storeFile file(stableKeystorePath)
+                storePassword stableKeystorePassword
+                keyAlias "acgc-public"
+                keyPassword stableKeystorePassword
+                storeType "PKCS12"
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "com.acgc.port"
         minSdk 23
         targetSdk 34
-        versionCode 2
-        versionName "0.2.0"
+        versionCode 4
+        versionName "0.2.1"
 
         externalNativeBuild {
             cmake {
@@ -24,6 +39,9 @@ android {
     buildTypes {
         debug {
             debuggable true
+            if (stableKeystorePath && stableKeystorePassword) {
+                signingConfig signingConfigs.stable
+            }
         }
         release {
             minifyEnabled false
