@@ -12,17 +12,11 @@ set(CMAKE_CXX_STANDARD 17)
 # Options
 option(PC_CONSOLE "Show console window (disables -mwindows, useful for debugging)" OFF)
 
-# =============================================================================
-# 32-bit enforcement (required: JSystem casts pointers to u32)
-# =============================================================================
+# ARM64 support keeps console/game addresses 32-bit while host pointers use
+# uintptr_t. Pointer-bearing command fields are translated by the PC layer.
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR
-        "This project MUST be built as 32-bit (pointer-to-u32 casts in JSystem).\n"
-        "  Android:       Build only the armeabi-v7a ABI\n"
-        "  Windows/MSYS2: Use the MINGW32 shell (not MINGW64)\n"
-        "  Linux: Use a 32-bit toolchain, e.g.:\n"
-        "    cmake .. -DCMAKE_C_COMPILER=i686-linux-gnu-gcc -DCMAKE_CXX_COMPILER=i686-linux-gnu-g++\n"
-        "    OR: cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-linux32.cmake")
+    add_compile_definitions(PC_64BIT)
+    message(STATUS "Building experimental 64-bit PC translation layer")
 endif()
 
 # Allow mixed C/C++ linkage

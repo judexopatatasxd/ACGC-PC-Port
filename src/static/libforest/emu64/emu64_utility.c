@@ -5,8 +5,6 @@
 #include "MSL_C/w_math.h"
 
 #ifdef TARGET_PC
-static_assert(sizeof(void*) == sizeof(u32), "seg2k0 pointer resolution requires 32-bit pointers");
-
 /* Executable image range from pc_main.c — BSS/data can collide with N64 segments */
 extern "C" unsigned int pc_image_base;
 extern "C" unsigned int pc_image_end;

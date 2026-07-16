@@ -21,8 +21,6 @@ extern "C" {
 
 #ifndef _GBI_RUNTIME_PTR_HELPERS
 #define _GBI_RUNTIME_PTR_HELPERS
-_GBI_STATIC_ASSERT(sizeof(void*) == sizeof(unsigned int), "GBI pointer packing requires 32-bit pointers");
-
 unsigned int pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* expr, const char* file, int line);
 uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed);
 #endif
