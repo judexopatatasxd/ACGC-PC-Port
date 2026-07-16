@@ -519,7 +519,9 @@ static int aNPC_setupActor_proc(GAME_PLAY* play, mActor_name_t name, s8 idx, int
 }
 
 #ifndef aNPC_NPC2
-#ifdef TARGET_PC
+#ifdef PC_64BIT
+#define aNPC_ACTOR_CLASS_SLOT_SIZE 0x1000
+#elif defined(TARGET_PC)
 #define aNPC_ACTOR_CLASS_SLOT_SIZE 0xA50
 #else
 #define aNPC_ACTOR_CLASS_SLOT_SIZE 0x9D0
