@@ -44,7 +44,11 @@ uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed);
 /* GCC GNU extension: pointer-to-integer cast in static initializers.
    Safe on 32-bit where sizeof(void*) == sizeof(unsigned int). */
 #ifndef _GBI_STATIC_PTR
+#ifdef PC_64BIT
+#define _GBI_STATIC_PTR(s) (uintptr_t)(s)
+#else
 #define _GBI_STATIC_PTR(s) (unsigned int)(uintptr_t)(s)
+#endif
 #endif
 /* Runtime display-list commands tag real PC pointers in bit 0. N64 segmented
    addresses are integer expressions and are left unchanged. */
@@ -1881,10 +1885,17 @@ typedef struct {
 /*
  * Generic Gfx Packet
  */
+#ifdef PC_64BIT
+typedef struct __attribute__((packed)) {
+	unsigned int w0;
+	uintptr_t w1;
+} Gwords;
+#else
 typedef struct {
 	unsigned int w0;
 	unsigned int w1;
 } Gwords;
+#endif
 
 /*
  * This union is the fundamental type of the display list.

@@ -25,7 +25,11 @@ unsigned int pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* exp
 uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed);
 #endif
 
+#ifdef PC_64BIT
+#define _GBI_STATIC_PTR(s) (uintptr_t)(s)
+#else
 #define _GBI_STATIC_PTR(s) (unsigned int)(uintptr_t)(s)
+#endif
 #define _GBI_IS_RUNTIME_PTR_EXPR(s) (__builtin_classify_type(s) == 5 || __builtin_classify_type(s) == 14)
 #define _GBI_RUNTIME_PTR(s) \
     pc_gbi_pack_runtime_ptr((uintptr_t)(s), _GBI_IS_RUNTIME_PTR_EXPR(s), #s, __FILE__, __LINE__)
