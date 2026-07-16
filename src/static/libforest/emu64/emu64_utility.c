@@ -6,21 +6,29 @@
 
 #ifdef TARGET_PC
 /* Executable image range from pc_main.c — BSS/data can collide with N64 segments */
-extern "C" unsigned int pc_image_base;
-extern "C" unsigned int pc_image_end;
-extern "C" uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed);
+extern "C" uintptr_t pc_image_base;
+extern "C" uintptr_t pc_image_end;
+extern "C" uintptr_t pc_gbi_unpack_runtime_ptr(uintptr_t packed);
 
-u32 emu64::seg2k0(u32 segadr) {
+emu64_addr_t emu64::seg2k0(emu64_addr_t segadr) {
+#ifdef PC_64BIT
+    if (segadr > UINT32_MAX) {
+        return segadr;
+    }
+#endif
+
     uintptr_t odd_ptr = pc_gbi_unpack_runtime_ptr(segadr);
     if (odd_ptr != 0) {
-        return (u32)odd_ptr;
+        return (emu64_addr_t)odd_ptr;
     }
 
+#ifndef PC_64BIT
     /* Runtime GBI macros tag direct PC pointers in bit 0. Segment references
        keep the low bit clear so they still resolve through the segment table. */
     if ((segadr & 1) != 0) {
         return segadr & ~1u;
     }
+#endif
 
     /* Addresses above the N64 segment range (upper nibble != 0) or below
        the minimum segment address are definitely raw PC pointers. */
@@ -36,19 +44,22 @@ u32 emu64::seg2k0(u32 segadr) {
     u32 seg = (segadr >> 24) & 0xF;
     u32 offset = segadr & 0xFFFFFF;
 
-    u32 base = this->segments[seg] & ~1u;
+    emu64_addr_t base = this->segments[seg];
+#ifndef PC_64BIT
+    base &= ~1u;
+#endif
 
     if (base == 0) {
         return segadr;
     }
 
     /* Normal segment resolution path */
-    u32 resolved = base + offset;
+    emu64_addr_t resolved = base + offset;
     this->resolved_addresses++;
     return resolved;
 }
 #else
-u32 emu64::seg2k0(u32 segadr) {
+emu64_addr_t emu64::seg2k0(emu64_addr_t segadr) {
     u32 k0;
 
     if ((segadr >> 28) == 0) {

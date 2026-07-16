@@ -3452,7 +3452,7 @@ void emu64::dl_G_DL(void) {
     static char s[256];
     Gfx* gfx = this->gfx_p;
 
-    this->work_ptr = (void*)this->seg2k0(gfx->dma.addr);
+    this->work_ptr = (void*)this->seg2k0(gfx->words.w1);
 #ifdef TARGET_PC
     if (this->work_ptr == NULL) {
         return;
@@ -3475,7 +3475,7 @@ void emu64::dl_G_DL(void) {
         case G_DL_PUSH:
             if (this->segment_set != false) {
                 this->segment_set = false;
-                sprintf(s, "%s", this->segchk(gfx->dma.addr));
+                sprintf(s, "%s", this->segchk(gfx->words.w1));
                 this->Printf0(VT_COL(RED, WHITE) "gsSPDisplayList(%s),\n" VT_RST, s);
                 emu64::warningString[EMU64_WARN_IDX_DL] = s;
                 emu64::warningTime[EMU64_WARN_IDX_DL] = EMU64_WARN_TIME;
@@ -3483,16 +3483,16 @@ void emu64::dl_G_DL(void) {
             }
 
             if (this->DL_stack_level < DL_MAX_STACK_LEVEL) {
-                this->DL_stack[this->DL_stack_level++] = (u32)(this->gfx_p + 1);
+                this->DL_stack[this->DL_stack_level++] = (emu64_addr_t)(uintptr_t)(this->gfx_p + 1);
             } else {
                 this->err_count++;
                 this->Printf0("*** DL stack overflow ***\n");
             }
 
-            this->gfx_p = (Gfx*)((int)this->work_ptr - sizeof(Gfx));
+            this->gfx_p = (Gfx*)((uintptr_t)this->work_ptr - sizeof(Gfx));
             break;
         case G_DL_NOPUSH:
-            this->gfx_p = (Gfx*)((u32)this->work_ptr - sizeof(Gfx));
+            this->gfx_p = (Gfx*)((uintptr_t)this->work_ptr - sizeof(Gfx));
             break;
         default:
             if (this->disable_polygons == false) {
@@ -3675,7 +3675,12 @@ void emu64::dl_G_SETTILE_DOLPHIN() {
     this->settilesize_dolphin_cmds[tile].isDolphin = 1;
 
     /* Set texture info for use in GC texture object initialization */
-    this->texture_info[tile].img_addr = (void*)this->now_setimg.setimg2.imgaddr;
+    this->texture_info[tile].img_addr =
+#ifdef PC_64BIT
+        (void*)this->now_setimg_addr;
+#else
+        (void*)this->now_setimg.setimg2.imgaddr;
+#endif
     this->texture_info[tile].format = this->now_setimg.setimg2.fmt;
     this->texture_info[tile].size = this->now_setimg.setimg2.siz;
     this->texture_info[tile].width = EXPAND_WIDTH(this->now_setimg.setimg2.wd);
@@ -3700,7 +3705,12 @@ void emu64::dl_G_LOADTILE() {
         return;
 
     /* Determine tmem base address */
-    u32 dram = this->now_setimg.setimg2.imgaddr;
+    emu64_addr_t dram =
+#ifdef PC_64BIT
+        this->now_setimg_addr;
+#else
+        this->now_setimg.setimg2.imgaddr;
+#endif
     dram += ((loadtile.tl / 4) * EXPAND_WIDTH(this->now_setimg.setimg2.wd) + (loadtile.sl / 4)
              << this->now_setimg.setimg2.siz) /
             2;
@@ -3728,7 +3738,7 @@ void emu64::dl_G_LOADTILE() {
 void emu64::dl_G_LOADBLOCK() {
     int tmem_idx;
     Gloadblock* loadblock = (Gloadblock*)this->gfx_p;
-    u32 addr;
+    emu64_addr_t addr;
     int i;
 
 #ifdef EMU64_DEBUG
@@ -3744,7 +3754,12 @@ void emu64::dl_G_LOADBLOCK() {
         return; /* Does not support LOAD commands */
 
     tmem_idx = this->settile_cmds[loadblock->tile].tmem / 4;
-    addr = this->now_setimg.setimg2.imgaddr;
+    addr =
+#ifdef PC_64BIT
+        this->now_setimg_addr;
+#else
+        this->now_setimg.setimg2.imgaddr;
+#endif
     for (i = tmem_idx; i < tmem_idx + (loadblock->sh + 1) / 16; i++) {
         tmem_map[i].addr = (void*)addr;
         tmem_map[i].loadblock = *loadblock;
@@ -3829,12 +3844,12 @@ void emu64::dl_G_LOADTLUT() {
 
     if (loadtlut_dol->type == 2) {
         EMU64_LOGF("gsDPLoadTLUT_Dolphin(%d, %d, %s),", loadtlut_dol->tlut_name, loadtlut_dol->count,
-                   this->segchk(loadtlut_dol->tlut_addr));
+                   this->segchk(this->gfx.words.w1));
 
         if (this->disable_polygons == false) {
             count = loadtlut_dol->count & 0x3FFF;
             tlut_name = loadtlut_dol->tlut_name;
-            tlut_addr = (void*)this->seg2k0(loadtlut_dol->tlut_addr);
+            tlut_addr = (void*)this->seg2k0(this->gfx.words.w1);
 
             if (tlut_addr == this->tlut_addresses[tlut_name]) {
                 /* Translation: ### Same TLUT address */
@@ -3891,10 +3906,15 @@ void emu64::dl_G_LOADTLUT() {
         if (this->disable_polygons == false) {
             u16 count = ((loadtlut->words.w1 >> 14) & 0x3FF) + 1;
             void* tlut;
-            u32 addr = this->now_setimg.setimg2.imgaddr;
+            emu64_addr_t addr =
+#ifdef PC_64BIT
+                this->now_setimg_addr;
+#else
+                this->now_setimg.setimg2.imgaddr;
+#endif
             u32 tlut_name = (settile_p->tmem / 16) & 0xF;
 
-            if (addr == (u32)this->tlut_addresses[tlut_name]) {
+                if (addr == (emu64_addr_t)(uintptr_t)this->tlut_addresses[tlut_name]) {
                 /* Translation: ### Same TLUT address %08x %d */
                 EMU64_INFOF("### 同じTLUTアドレスです %08x %d\n", addr, tlut_name);
 #ifdef TARGET_PC
@@ -4223,14 +4243,14 @@ void emu64::dl_G_SETCIMG() {
             }
 
             this->Printf1("gsDPSetColorImage(G_IM_FMT_%s, G_IM_SIZ_%s, %d, %s),", s_fmt, s_siz,
-                          EXPAND_WIDTH(this->gfx.setimg.wd), this->segchk(this->gfx.setimg.dram));
+                          EXPAND_WIDTH(this->gfx.setimg.wd), this->segchk(this->gfx.words.w1));
         }
     }
 #endif
 }
 
 void emu64::dl_G_SETZIMG() {
-    EMU64_WARNF("gsDPSetDepthImage(%s),", this->segchk(this->gfx.setimg.dram));
+    EMU64_WARNF("gsDPSetDepthImage(%s),", this->segchk(this->gfx.words.w1));
 }
 
 void emu64::dl_G_SETTIMG() {
@@ -4270,7 +4290,7 @@ void emu64::dl_G_SETTIMG() {
                 }
 
                 this->Printf2("gsDPSetTextureImage(G_IM_FMT_%s, G_IM_SIZ_%s, %d, %s),", s_fmt, s_siz,
-                              EXPAND_WIDTH(setimg->wd), this->segchk(setimg->dram));
+                              EXPAND_WIDTH(setimg->wd), this->segchk(this->gfx.words.w1));
             }
         } else if (this->print_commands) {
             const char* s_siz;
@@ -4288,13 +4308,18 @@ void emu64::dl_G_SETTIMG() {
 
             this->Printf2("gsDPSetTextureImage_Dolphin(G_IM_FMT_%s, G_IM_SIZ_%s, %d, %d, %s),",
                           dolfmttbl2[setimg2->siz][setimg2->fmt], s_siz, EXPAND_WIDTH(setimg2->wd),
-                          EXPAND_HEIGHT(setimg2->ht), this->segchk(setimg2->imgaddr));
+                          EXPAND_HEIGHT(setimg2->ht), this->segchk(this->gfx.words.w1));
         }
     }
 #endif
 
     this->now_setimg.setimg2 = *setimg2;
+#ifdef PC_64BIT
+    this->now_setimg_addr = this->seg2k0(this->gfx.words.w1);
+    this->now_setimg.setimg2.imgaddr = 0;
+#else
     this->now_setimg.setimg2.imgaddr = (u32)this->seg2k0(setimg2->imgaddr);
+#endif
 }
 
 void emu64::dl_G_SETENVCOLOR() {
@@ -4487,7 +4512,7 @@ void emu64::dl_G_MTX() {
 
         Gmtx* mtx_gfx = (Gmtx*)this->gfx_p;
         Mtx_t* mtx =
-            (Mtx_t*)this->seg2k0(mtx_gfx->addr); /* Matrix is in N64 s16.16 format. (First 8 elements are s16 integer
+            (Mtx_t*)this->seg2k0(this->gfx.words.w1); /* Matrix is in N64 s16.16 format. (First 8 elements are s16 integer
                                                     components, second 8 elements are s16 fractional components) */
 #ifdef TARGET_PC
         if (mtx == NULL) {
@@ -4624,15 +4649,15 @@ void emu64::dl_G_VTX() {
     this->vtx_load_calls++;
 
     if ((this->print_commands & EMU64_PRINTF_ENABLED_FLAG)) {
-        EMU64_LOGF("gsSPVertex(%s, %d, %d),", this->segchk(this->gfx.dma.addr), n, v0);
+        EMU64_LOGF("gsSPVertex(%s, %d, %d),", this->segchk(this->gfx.words.w1), n, v0);
         if ((this->print_commands & EMU64_PRINTF3_FLAG) != 0) {
-            this->work_ptr = (void*)this->seg2k0(this->gfx.dma.addr);
+            this->work_ptr = (void*)this->seg2k0(this->gfx.words.w1);
             this->show_vtx((Vtx*)work_ptr, n, v0);
         }
     }
 
     if (this->disable_polygons == false) {
-        Vtx* vtx_p = (Vtx*)this->seg2k0(this->gfx.dma.addr);
+        Vtx* vtx_p = (Vtx*)this->seg2k0(this->gfx.words.w1);
 #ifdef TARGET_PC
         if (vtx_p == NULL) {
             EMU64_TIMED_SEGMENT_END(spvertex_time);
@@ -5318,7 +5343,7 @@ void emu64::dl_G_BRANCH_Z() {
     EMU64_WARNF("gsSPBranchLessZraw(%s, %d, 0x%08x),", this->segchk(this->rdpHalf_1), (this->gfx.words.w0 / 2) & 0x7FF,
                 this->gfx.words.w1);
 
-    this->gfx_p = (Gfx*)((int)this->work_ptr - sizeof(Gfx));
+    this->gfx_p = (Gfx*)((uintptr_t)this->work_ptr - sizeof(Gfx));
     /* Translation: gsSPBranchLessZraw isn't implemented yet */
     this->Printf0("gsSPBranchLessZrawはまだインプリメントされていません\n");
 }
@@ -5443,10 +5468,10 @@ void emu64::dl_G_MOVEWORD() {
     switch (moveword->index) {
         case G_MW_SEGMENT: {
             u32 segment = moveword->offset / 4;
-            EMU64_WARNF("gsSPSegmentA(%d, 0x%08x),", segment, moveword->data);
+            EMU64_WARNF("gsSPSegmentA(%d, 0x%llx),", segment, (unsigned long long)this->gfx.words.w1);
 #ifdef TARGET_PC
             /* On PC, store address directly (no GC physical address mapping) */
-            this->segments[segment] = moveword->data;
+            this->segments[segment] = this->gfx.words.w1;
 #else
             this->segments[segment] = (0x80000000 + (moveword->data & 0x0FFFFFFF));
             if (segment >= EMU64_NUM_SEGMENTS ||
@@ -5536,15 +5561,16 @@ void emu64::dl_G_MOVEWORD() {
 
 void emu64::dl_G_MOVEMEM() {
     Gmovemem* movemem = (Gmovemem*)this->gfx_p;
+    emu64_addr_t data_addr = this->gfx.words.w1;
     u8 param = movemem->index;
     switch (movemem->index) {
         case G_MV_VIEWPORT: {
-            this->work_ptr = (void*)this->seg2k0(movemem->data);
+            this->work_ptr = (void*)this->seg2k0(data_addr);
             Vp_t* vp = (Vp_t*)this->work_ptr;
 
 #ifdef EMU64_DEBUG
             if (this->print_commands != false) {
-                EMU64_LOGF("gsSPViewport(%s),", this->segchk(movemem->data));
+                EMU64_LOGF("gsSPViewport(%s),", this->segchk(data_addr));
                 EMU64_INFOF("\t# vscale=[%d %d %d %d], ", vp->vscale[0], vp->vscale[1], vp->vscale[2], vp->vscale[3]);
                 EMU64_INFOF("vtrans=[%d %d %d %d] ", vp->vtrans[0], vp->vtrans[1], vp->vtrans[2], vp->vtrans[3]);
             }
@@ -5576,7 +5602,7 @@ void emu64::dl_G_MOVEMEM() {
         }
 
         case G_MV_MATRIX: {
-            EMU64_LOGF("gsSPForceMatrix(%s),", this->segchk(movemem->data));
+            EMU64_LOGF("gsSPForceMatrix(%s),", this->segchk(data_addr));
             this->gfx_p++;                                          /* Generates two commands */
             this->Printf0("gsSPForceMatrixはサポートしてません\n"); /* Translation: gsSPForceMatrix isn't supported */
             break;
@@ -5585,8 +5611,8 @@ void emu64::dl_G_MOVEMEM() {
         case G_MV_LIGHT: {
             switch (movemem->offset * 8) {
                 case G_MVO_LOOKATX: {
-                    EMU64_LOGF("gsSPLookAtX(%s),", this->segchk(movemem->data));
-                    LookAt* la = (LookAt*)this->seg2k0(movemem->data);
+                    EMU64_LOGF("gsSPLookAtX(%s),", this->segchk(data_addr));
+                    LookAt* la = (LookAt*)this->seg2k0(data_addr);
                     EMU64_INFOF(" /* {%3d,%3d,%3d} */", la->l->l.dir[0], la->l->l.dir[1], la->l->l.dir[2]);
                     this->lookAt.x.x = la->l->l.dir[0];
                     this->lookAt.x.y = la->l->l.dir[1];
@@ -5596,8 +5622,8 @@ void emu64::dl_G_MOVEMEM() {
                 }
 
                 case G_MVO_LOOKATY: {
-                    EMU64_LOGF("gsSPLookAtY(%s),", this->segchk(movemem->data));
-                    LookAt* la = (LookAt*)this->seg2k0(movemem->data);
+                    EMU64_LOGF("gsSPLookAtY(%s),", this->segchk(data_addr));
+                    LookAt* la = (LookAt*)this->seg2k0(data_addr);
                     EMU64_INFOF(" /* {%3d,%3d,%3d} */", la->l->l.dir[0], la->l->l.dir[1], la->l->l.dir[2]);
                     this->lookAt.y.x = la->l->l.dir[0];
                     this->lookAt.y.y = la->l->l.dir[1];
@@ -5607,11 +5633,11 @@ void emu64::dl_G_MOVEMEM() {
                 }
 
                 default: {
-                    Light_new* light = (Light_new*)this->seg2k0(movemem->data);
+                    Light_new* light = (Light_new*)this->seg2k0(data_addr);
                     int idx = movemem->offset * 8 - 24;
                     idx /= 24; /* Idx should be 1 - 8. There's more bithacks going on here, but I think it's compiler
                                   generated */
-                    EMU64_LOGF("gsSPLight(%s, %d),", this->segchk(movemem->data), idx);
+                    EMU64_LOGF("gsSPLight(%s, %d),", this->segchk(data_addr), idx);
                     EMU64_INFOF("no = %d color=[%3d %3d %3d],", idx, light->l.col[0], light->l.col[1], light->l.col[2]);
 
                     /* Convert index to 0 based */
@@ -5665,7 +5691,7 @@ void emu64::dl_G_MOVEMEM() {
 
         default: {
             /* Invalid/Unknown MOVEMEM command */
-            EMU64_WARNF("gsMoveMem(%s, %d, %d, %d), /* ### what? */", this->segchk(movemem->data),
+            EMU64_WARNF("gsMoveMem(%s, %d, %d, %d), /* ### what? */", this->segchk(data_addr),
                         ((movemem->length >> 3) + 1) * 8, movemem->index, movemem->offset);
 
             this->num_unknown_cmds++;

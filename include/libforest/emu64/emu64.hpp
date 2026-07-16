@@ -33,6 +33,12 @@
 #define VTX_COUNT 128
 #define NUM_LIGHTS 8
 
+#ifdef TARGET_PC
+typedef uintptr_t emu64_addr_t;
+#else
+typedef u32 emu64_addr_t;
+#endif
+
 #define EMU64_WARNING_COUNT 10
 #define EMU64_WARN_IDX_DL 4
 
@@ -636,7 +642,7 @@ class emu64 : public emu64_print {
     void texture_gen(int tile);
     void texture_matrix();
     void disp_matrix(MtxP mtx);
-    const char* segchk(u32 seg);
+    const char* segchk(emu64_addr_t seg);
     const char* combine_name(u32 param, u32 type);
     const char* combine_alpha(int param, int type);
     const char* combine_tev_color_name(u32 color_param);
@@ -647,7 +653,7 @@ class emu64 : public emu64_print {
     void print_combine(u64 combine);
     void print_combine_tev(u64 combine_tev);
     void print_guMtxXFM1F_dol2(MtxP mtx, GXProjectionType type, float x, float y, float z);
-    u32 seg2k0(u32 seg);
+    emu64_addr_t seg2k0(emu64_addr_t seg);
     void setup_texture_tile(int tile);
     void setup_1tri_2tri_1quad(unsigned int vtx_idx);
     void draw_1tri_2tri_1quad(unsigned int n_verts, ...);
@@ -755,8 +761,8 @@ private:
     /* 0x0060 */ ucode_info* ucode_info_p;
     /* 0x0064 */ int ucode_type; // maybe?
     /* 0x0068 */ int _0068;      /* ??? */
-    /* 0x006C */ u32 segments[EMU64_NUM_SEGMENTS];
-    /* 0x00AC */ u32 DL_stack[DL_MAX_STACK_LEVEL];
+    /* 0x006C */ emu64_addr_t segments[EMU64_NUM_SEGMENTS];
+    /* 0x00AC */ emu64_addr_t DL_stack[DL_MAX_STACK_LEVEL];
     /* 0x00F4 */ s8 DL_stack_level;
     /* 0x00F8 */ u32 othermode_high;
     /* 0x00FC */ u32 othermode_low;
@@ -773,6 +779,9 @@ private:
     /* 0x03F8 */ Gsettile_dolphin settile_dolphin_cmds[NUM_TILES];
     /* 0x0438 */ Gsettilesize_Dolphin settilesize_dolphin_cmds[NUM_TILES];
     /* 0x0478 */ Gsetimg_new now_setimg;
+#ifdef PC_64BIT
+    emu64_addr_t now_setimg_addr;
+#endif
     /* 0x0480 */ u8 tex_edge_alpha;
 
     /* 0x0484 */ union {
@@ -817,7 +826,7 @@ private:
     /* 0x09E8 */ GXProjectionType projection_type;
     /* 0x09EC */ GC_Mtx perspective_mtx;
     /* 0x0A1C */ u32 _0A1C;
-    /* 0x0A20 */ u32 rdpHalf_1;
+    /* 0x0A20 */ emu64_addr_t rdpHalf_1;
     /* 0x0A24 */ EmuLight lights[NUM_LIGHTS];
     /* 0x0B64 */ u8 num_lights;
     /* 0x0B68 */ u32 lookatx_cnt;

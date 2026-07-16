@@ -8,7 +8,14 @@ static uintptr_t s_odd_ptr_tokens[PC_GBI_ODD_PTR_TOKEN_COUNT];
 static unsigned int s_odd_ptr_token_next = 0;
 static int s_warned_odd_ptr = 0;
 
-unsigned int pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* expr, const char* file, int line) {
+uintptr_t pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* expr, const char* file, int line) {
+#ifdef PC_64BIT
+    (void)is_ptr;
+    (void)expr;
+    (void)file;
+    (void)line;
+    return addr;
+#else
     unsigned int slot;
 
     if (!is_ptr) {
@@ -30,9 +37,14 @@ unsigned int pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* exp
     }
 
     return PC_GBI_ODD_PTR_TOKEN_BASE + slot * 2u;
+#endif
 }
 
-uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed) {
+uintptr_t pc_gbi_unpack_runtime_ptr(uintptr_t packed) {
+#ifdef PC_64BIT
+    (void)packed;
+    return 0;
+#else
     unsigned int token = packed - PC_GBI_ODD_PTR_TOKEN_BASE;
 
     if (token < PC_GBI_ODD_PTR_TOKEN_COUNT * 2u && (token & 1u) == 0) {
@@ -40,4 +52,5 @@ uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed) {
     }
 
     return 0;
+#endif
 }

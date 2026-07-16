@@ -101,8 +101,8 @@ void pc_platform_swap_buffers(void);
 int  pc_platform_poll_events(void);
 
 /* EXE image range for seg2k0 pointer disambiguation (vs N64 segment addresses) */
-extern unsigned int pc_image_base;
-extern unsigned int pc_image_end;
+extern uintptr_t pc_image_base;
+extern uintptr_t pc_image_end;
 
 /* --- Model viewer --- */
 extern int g_pc_model_viewer;

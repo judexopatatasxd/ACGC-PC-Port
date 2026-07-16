@@ -54,21 +54,28 @@ void emu64::disp_matrix(MtxP mtx) {
 
 #pragma inline_depth(5)
 #pragma inline_max_size(1100)
-const char* emu64::segchk(u32 segment) {
+const char* emu64::segchk(emu64_addr_t segment) {
     static char str[64];
     char buf[30];
     const char str0[] = "anime_4_txt+%4u";
     const char str1[] = "anime_6_model+sizeof(Mtx)*%2u";
 
-    u32 partial_addr = seg2k0(segment);
+    str[0] = '\0';
+#ifdef PC_64BIT
+    if (segment > UINT32_MAX) {
+        snprintf(str, sizeof(str), "0x%016llx", (unsigned long long)segment);
+        return str;
+    }
+#endif
+
+    u32 partial_addr = (u32)seg2k0(segment);
     u32 addr = convert_partial_address(partial_addr);
 
-    str[0] = '\0';
     if (segment == partial_addr) {
         if (addr == partial_addr) {
-            snprintf(str, sizeof(str), "0x%08x", segment);
+            snprintf(str, sizeof(str), "0x%08x", (u32)segment);
         } else {
-            snprintf(str, sizeof(str), "0x%08x /* PADDR=0x%08x */", segment, addr);
+            snprintf(str, sizeof(str), "0x%08x /* PADDR=0x%08x */", (u32)segment, addr);
         }
     } else {
         const char* s;
@@ -115,13 +122,13 @@ const char* emu64::segchk(u32 segment) {
             if (s != nullptr) {
                 snprintf(str, sizeof(str), "%s /* 0x%08x */", s, partial_addr);
             } else {
-                snprintf(str, sizeof(str), "0x%08x /* ### 0x%08x */", segment, partial_addr);
+                snprintf(str, sizeof(str), "0x%08x /* ### 0x%08x */", (u32)segment, partial_addr);
             }
         } else {
             if (s != nullptr) {
                 snprintf(str, sizeof(str), "%s /* 0x%08x PADDR=0x%08x */", s, partial_addr, addr);
             } else {
-                snprintf(str, sizeof(str), "0x%08x /* ### 0x%08x PADDR=0x%08x */", segment, partial_addr, addr);
+                snprintf(str, sizeof(str), "0x%08x /* ### 0x%08x PADDR=0x%08x */", (u32)segment, partial_addr, addr);
             }
         }
     }

@@ -34,8 +34,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-unsigned int pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* expr, const char* file, int line);
-uintptr_t pc_gbi_unpack_runtime_ptr(unsigned int packed);
+uintptr_t pc_gbi_pack_runtime_ptr(uintptr_t addr, int is_ptr, const char* expr, const char* file, int line);
+uintptr_t pc_gbi_unpack_runtime_ptr(uintptr_t packed);
 #ifdef __cplusplus
 }
 #endif
@@ -1176,7 +1176,7 @@ typedef struct {
  * First 8 words are integer portion of the 4x4 matrix
  * Last 8 words are the fraction portion of the 4x4 matrix
  */
-typedef long	Mtx_t[4][4];
+typedef s32 Mtx_t[4][4];
 
 typedef union {
     Mtx_t		m;
@@ -1464,7 +1464,7 @@ typedef struct {
 
 typedef union {
     Hilite_t	h;
-    long int	force_structure_alignment[4];
+    s32 force_structure_alignment[4];
 } Hilite;
 
 #define gdSPDefLights0(ar,ag,ab)					\
@@ -1729,7 +1729,7 @@ typedef struct {
 		unsigned int	prim_min_level:8;
 		unsigned int	pad:8;
 		int		cmd:8;
-		unsigned long	color;
+		u32 color;
 } Gsetcolor;
 #else
 typedef struct {
@@ -1737,7 +1737,7 @@ typedef struct {
 		unsigned char	pad;
 		unsigned char	prim_min_level;
 		unsigned char	prim_level;
-		unsigned long	color;
+		u32 color;
 } Gsetcolor;
 #endif
 
@@ -1876,10 +1876,10 @@ typedef struct {
  * Textured rectangles are 128 bits not 64 bits
  */	
 typedef struct {
-    unsigned long w0;
-    unsigned long w1;
-    unsigned long w2;
-    unsigned long w3;
+    u32 w0;
+    u32 w1;
+    u32 w2;
+    u32 w3;
 } TexRect;
 
 /*
@@ -3233,7 +3233,7 @@ typedef union {
 {{									\
 	_SHIFTL(cmd, 24, 8) | _SHIFTL(fmt, 21, 3) |			\
 	_SHIFTL(siz, 19, 2) | _SHIFTL((width)-1, 0, 12),		\
-	(unsigned int)(i)						\
+	_GBI_STATIC_PTR(i)						\
 }}
 
 #define	gDPSetColorImage(pkt, f, s, w, i)	gSetImage(pkt, G_SETCIMG, f, s, w, i)
