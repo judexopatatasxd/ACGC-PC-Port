@@ -24,6 +24,16 @@ u8 ksNesPaletteNormal[] = {
     0xe7, 0x93, 0xd7, 0xb6, 0xd7, 0xdd, 0xdb, 0xbf, 0xef, 0x7b, 0x80, 0x00, 0x80, 0x00,
 };
 
+static inline bool ksNesDrawIsPackedNametable(const u8* ptr) {
+#ifdef TARGET_PC
+    // The original renderer encodes palette/tile data in pointer values 0..0xffff.
+    // Real host pointers cannot be classified by their 32-bit sign on ARM64.
+    return (uintptr_t)ptr <= 0xffff;
+#else
+    return (s32)ptr >= 0;
+#endif
+}
+
 void ksNesDrawInit(ksNesCommonWorkObj* wp) {
     Mtx44 mtx;
     Vec v1 = { 0.f, 0.f, 800.f };
@@ -129,7 +139,7 @@ void ksNesDrawMakeBGIndTex(ksNesCommonWorkObj* wp, u32 mmc3) {
             }
 
             nametable_p = wp->draw_ctx.ppu_scanline_regs[row].nametable_ptrs[((scanline_ctrl1 >> 8) & 1)];
-            if (((s32)nametable_p) >= 0) {
+            if (ksNesDrawIsPackedNametable(nametable_p)) {
                 nibble_acc = (((uintptr_t)nametable_p) & 3) | (nibble_acc << 4);
                 tile_byte = (((uintptr_t)nametable_p) >> 8) & 0xFF;
             } else {
@@ -172,7 +182,7 @@ void ksNesDrawMakeBGIndTexMMC5(ksNesCommonWorkObj* wp, ksNesStateObj* sp) {
 
         for (col = 0; col < 34; col++) {
             nametable_p = wp->draw_ctx.ppu_scanline_regs[row].nametable_ptrs[((scanline_ctrl1 >> 8) & 1)];
-            if (((s32)nametable_p) >= 0) {
+            if (ksNesDrawIsPackedNametable(nametable_p)) {
                 nibble_acc = (((uintptr_t)nametable_p) & 3) | (nibble_acc << 4);
                 tile_byte = (((uintptr_t)nametable_p) >> 8) & 0xFF;
             } else {
@@ -272,7 +282,7 @@ void ksNesDrawMakeBGIndTexMMC2(ksNesCommonWorkObj* wp, u32 default_bank) {
 
         for (col = 0; col < 34; col++) {
             nametable_p = wp->draw_ctx.ppu_scanline_regs[row].nametable_ptrs[((scanline_ctrl1 >> 8) & 1)];
-            if (((s32)nametable_p) >= 0) {
+            if (ksNesDrawIsPackedNametable(nametable_p)) {
                 nibble_acc = (((uintptr_t)nametable_p) & 3) | (nibble_acc << 4);
                 tile_byte = (((uintptr_t)nametable_p) >> 8) & 0xFF;
             } else {
