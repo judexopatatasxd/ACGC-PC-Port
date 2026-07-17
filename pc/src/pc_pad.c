@@ -5,6 +5,30 @@
 #include "pc_settings.h"
 #include <dolphin/pad.h>
 
+#ifdef TARGET_ANDROID
+#include <jni.h>
+
+/* Both signed 8-bit axes are packed into one SDL atomic value so the Android
+ * UI thread and the game thread always exchange a consistent stick sample. */
+static SDL_atomic_t g_android_cstick = { 0 };
+
+JNIEXPORT void JNICALL
+Java_com_acgc_port_VirtualControllerView_nativeSetCStick(
+        JNIEnv* env, jclass clazz, jfloat x, jfloat y) {
+    (void)env;
+    (void)clazz;
+
+    int sx = (int)(x * 127.0f);
+    int sy = (int)(y * 127.0f);
+    if (sx > 127) sx = 127;
+    if (sx < -127) sx = -127;
+    if (sy > 127) sy = 127;
+    if (sy < -127) sy = -127;
+
+    SDL_AtomicSet(&g_android_cstick, (sx & 0xFF) | ((sy & 0xFF) << 8));
+}
+#endif
+
 /* analog stick constants */
 #define STICK_MAGNITUDE     80
 #define RUMBLE_DURATION_MS  200
@@ -99,6 +123,20 @@ u32 PADRead(PADStatus* status) {
 
         #undef INPUT_PRESSED
     }
+
+#ifdef TARGET_ANDROID
+    /* The right touch joystick controls the inventory hand directly.  It is
+     * kept separate from the main stick, so it cannot move the player. */
+    int packed_cstick = SDL_AtomicGet(&g_android_cstick);
+    if (packed_cstick != 0) {
+        int sx = packed_cstick & 0xFF;
+        int sy = (packed_cstick >> 8) & 0xFF;
+        if (sx > 127) sx -= 256;
+        if (sy > 127) sy -= 256;
+        cstickX = (s8)sx;
+        cstickY = (s8)sy;
+    }
+#endif
 
     /* hotplug */
     if (!g_controller) {

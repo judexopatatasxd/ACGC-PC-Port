@@ -18,13 +18,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Transparent multi-touch controls that emit ordinary Android key events into SDL. */
+/** Transparent multi-touch controls for the 32-bit native port. */
 public final class VirtualControllerView extends View {
+    private static native void nativeSetCStick(float x, float y);
+
     private static final String PREFS_NAME = "controller_settings";
     private static final String PREF_VISIBLE = "controls_visible";
     private static final String POSITION_PREFIX = "position_";
     private static final String[] CONTROL_IDS = {
-            "STICK", "D", "C", "A", "B", "X", "Y", "L", "R", "Z", "START"
+            "STICK", "D", "MANO", "A", "B", "X", "Y", "L", "R", "Z", "START"
     };
 
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -122,9 +124,10 @@ public final class VirtualControllerView extends View {
         addControl(Control.pad("D", smallRadius,
                 KeyEvent.KEYCODE_I, KeyEvent.KEYCODE_K,
                 KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_L), 0.36f, 0.75f);
-        addControl(Control.pad("C", smallRadius,
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT), 0.64f, 0.76f);
+        /* The inventory hand is driven by the GameCube C-stick.  Send this
+         * control as a real analog axis instead of Android arrow key events,
+         * whose SDL mapping varies between phones. */
+        addControl(Control.cStick("MANO", smallRadius), 0.64f, 0.76f);
 
         addControl(Control.button("A", buttonRadius * 1.12f, KeyEvent.KEYCODE_SPACE),
                 0.88f, 0.68f);
@@ -175,7 +178,7 @@ public final class VirtualControllerView extends View {
         canvas.drawCircle(control.cx, control.cy, control.radius, fill);
         canvas.drawCircle(control.cx, control.cy, control.radius, stroke);
 
-        if (control.kind == Control.PAD) {
+        if (control.kind != Control.BUTTON) {
             fill.setColor(Color.argb(control.activePointer >= 0 ? 190 : 115, 114, 214, 161));
             canvas.drawCircle(control.cx + control.knobX, control.cy + control.knobY,
                     control.radius * 0.40f, fill);
@@ -277,7 +280,7 @@ public final class VirtualControllerView extends View {
             float dx = x - control.cx;
             float dy = y - control.cy;
             float distance = dx * dx + dy * dy;
-            float hitRadius = control.radius * (control.kind == Control.PAD ? 1.35f : 1.18f);
+            float hitRadius = control.radius * (control.kind != Control.BUTTON ? 1.35f : 1.18f);
             if (distance <= hitRadius * hitRadius && distance < bestDistance) {
                 best = control;
                 bestDistance = distance;
@@ -313,6 +316,14 @@ public final class VirtualControllerView extends View {
         }
     }
 
+    private void setCStick(float x, float y) {
+        try {
+            nativeSetCStick(x, y);
+        } catch (UnsatisfiedLinkError ignored) {
+            // Native shutdown can race the final touch-up event.
+        }
+    }
+
     private void releaseAll() {
         for (Control control : controls) control.release(this);
         Integer[] keys = pressedKeys.toArray(new Integer[0]);
@@ -329,6 +340,7 @@ public final class VirtualControllerView extends View {
     private static final class Control {
         static final int BUTTON = 0;
         static final int PAD = 1;
+        static final int CSTICK = 2;
 
         final int kind;
         final String label;
@@ -372,6 +384,10 @@ public final class VirtualControllerView extends View {
             return new Control(PAD, label, 0f, 0f, radius, 0, up, down, left, right);
         }
 
+        static Control cStick(String label, float radius) {
+            return new Control(CSTICK, label, 0f, 0f, radius, 0, 0, 0, 0, 0);
+        }
+
         void update(float x, float y, VirtualControllerView view) {
             if (kind == BUTTON) {
                 view.press(key);
@@ -388,6 +404,17 @@ public final class VirtualControllerView extends View {
             }
             knobX = dx;
             knobY = dy;
+
+            if (kind == CSTICK) {
+                float normalizedX = dx / max;
+                float normalizedY = -dy / max;
+                if (normalizedX * normalizedX + normalizedY * normalizedY < 0.04f) {
+                    normalizedX = 0f;
+                    normalizedY = 0f;
+                }
+                view.setCStick(normalizedX, normalizedY);
+                return;
+            }
 
             float threshold = radius * 0.23f;
             setDirections(dy < -threshold, dy > threshold,
@@ -406,7 +433,8 @@ public final class VirtualControllerView extends View {
             if (kind == BUTTON) {
                 view.release(key);
             } else {
-                setDirections(false, false, false, false, view);
+                if (kind == CSTICK) view.setCStick(0f, 0f);
+                else setDirections(false, false, false, false, view);
                 knobX = 0f;
                 knobY = 0f;
             }
