@@ -36,7 +36,7 @@ extern u32 Neos_Update(s16* dst) {
 
     u32 prev = (cur + 1) & 1;
     if (pc_tasks[prev]) {
-        RspStart2((u32*)pc_task_buf[prev], pc_tasks[prev], 0);
+        RspStart2(pc_task_buf[prev], pc_tasks[prev], 0);
         pc_tasks[prev] = 0;
         Jac_bcopy(tmp_buf, dst, DAC_SIZE * 2);
     } else {
@@ -170,7 +170,7 @@ extern void* neosproc(void* param) {
 
         tmp = (cur + 1) & 1;
         if (tasks[tmp]) {
-            RspStart2((u32*)task_buf[tmp], tasks[tmp], 0);
+            RspStart2(task_buf[tmp], tasks[tmp], 0);
             tasks[tmp] = 0;
             Jac_bcopy(tmp_buf, samples_dst, DAC_SIZE * 2);
         } else {

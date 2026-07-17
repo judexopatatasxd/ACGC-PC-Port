@@ -42,8 +42,8 @@ static s16 AD4[16] = {
 static void Jac_Resample16(s16* input_L_channel, s16* input_R_channel, s16* output_interleaved, s32 input_sample_count,
                            s32 output_sample_count, s16* history_buffer, u16* position_p, s32 is_first_block);
 
-extern void RspStart2(u32* task, s32 tasks, s32 mode) {
-    static u32* taskp;
+extern void RspStart2(Acmd* task, s32 tasks, s32 mode) {
+    static Acmd* taskp;
     static s32 alltasks;
     static s32 consumes;
 
@@ -55,16 +55,16 @@ extern void RspStart2(u32* task, s32 tasks, s32 mode) {
     if (alltasks > 0) {
         consumes = RspStart(taskp, alltasks);
         alltasks -= consumes;
-        taskp += consumes * 2;
+        taskp += consumes;
     }
 }
 
 #define DMEM_OFS(ofs) ((s16*)&((u8*)DMEM)[(ofs)])
 
-extern s32 RspStart(u32* pTaskCmds, s32 allTasks) {
+extern s32 RspStart(Acmd* pTaskCmds, s32 allTasks) {
     static BOOL init = TRUE;
     s32 i; // r30
-    u32 cmdLo; // r29
+    uintptr_t cmdLo; // r29
     u32 cmdHi;
     u16 DMEMCount; // r28
     u16 DMEMIn; // r27
@@ -90,9 +90,9 @@ extern s32 RspStart(u32* pTaskCmds, s32 allTasks) {
     }
 
     for (i = 0; i < allTasks; i++) {
-        cmdLo = pTaskCmds[1];
-        cmdHi = pTaskCmds[0];
-        pTaskCmds += 2;
+        cmdLo = pTaskCmds->words.w1;
+        cmdHi = pTaskCmds->words.w0;
+        pTaskCmds++;
 
         switch (cmdHi >> 24) {
             case A_CMD_LOADCACHE: // A_LOADCACHE (special to GC?)
