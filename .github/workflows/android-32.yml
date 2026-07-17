@@ -1,17 +1,22 @@
-name: Build Android APK
+name: Build Android APK 32-bit
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - master
+      - v2-32bit-hand-control
     paths:
       - "android/**"
       - "pc/**"
       - "src/**"
       - "include/**"
-      - ".github/workflows/android.yml"
+      - ".github/workflows/android-32.yml"
+      - ".github/workflows/android-64.yml"
 
 jobs:
-  apk:
+  apk-32:
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/v2-32bit-hand-control'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -30,8 +35,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          # This port and the pinned SDL2 submodule use the same older,
-          # known-good wrapper JAR, which is not in the action's checksum list.
           validate-wrappers: false
 
       - name: Prepare stable signing key
@@ -45,33 +48,34 @@ jobs:
             echo "ACGC_KEYSTORE_PASSWORD=$ACGC_SIGNING_PASSWORD" >> "$GITHUB_ENV"
           fi
 
-      - name: Build debug APK
+      - name: Build 32-bit debug APK
         working-directory: android
         run: ./gradlew --no-daemon assembleDebug
 
-      - name: Verify ARM64 APK and signature
+      - name: Verify 32-bit APK and signature
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           CHECK_DIR="$RUNNER_TEMP/acgc-apk-check"
           mkdir -p "$CHECK_DIR"
           unzip -q "$APK" "lib/*" -d "$CHECK_DIR"
 
-          test -f "$CHECK_DIR/lib/arm64-v8a/libmain.so"
-          UNEXPECTED_ABIS="$(find "$CHECK_DIR/lib" -mindepth 1 -maxdepth 1 -type d ! -name arm64-v8a -print)"
+          test -f "$CHECK_DIR/lib/armeabi-v7a/libmain.so"
+          UNEXPECTED_ABIS="$(find "$CHECK_DIR/lib" -mindepth 1 -maxdepth 1 -type d ! -name armeabi-v7a -print)"
           test -z "$UNEXPECTED_ABIS"
-          readelf -h "$CHECK_DIR/lib/arm64-v8a/libmain.so" | grep -Eq 'Machine:[[:space:]]+AArch64'
+          readelf -h "$CHECK_DIR/lib/armeabi-v7a/libmain.so" | grep -Eq 'Class:[[:space:]]+ELF32'
+          readelf -h "$CHECK_DIR/lib/armeabi-v7a/libmain.so" | grep -Eq 'Machine:[[:space:]]+ARM'
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK"
 
-      - name: Name APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Animal-Crossing-Port-Android.apk
+      - name: Name 32-bit APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Animal-Crossing-Port-Android-32bit.apk
 
-      - name: Upload APK
+      - name: Upload 32-bit APK
         uses: actions/upload-artifact@v4
         with:
-          name: Animal-Crossing-Port-Android
-          path: Animal-Crossing-Port-Android.apk
+          name: Animal-Crossing-Port-Android-32bit
+          path: Animal-Crossing-Port-Android-32bit.apk
           if-no-files-found: error
