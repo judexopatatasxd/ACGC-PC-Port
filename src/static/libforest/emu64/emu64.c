@@ -403,7 +403,7 @@ static u32 texture_cache_get_heap_size(texture_cache_t* cache) {
 
 static void* texture_cache_alloc(texture_cache_t* cache, u32 size) {
     cache->last_alloc_start = cache->buffer_current;
-    cache->last_alloc_end = (u8*)ALIGN_NEXT((u32)cache->buffer_current + size, 32);
+    cache->last_alloc_end = (u8*)ALIGN_NEXT((uintptr_t)cache->buffer_current + size, 32);
 
     if (cache->buffer_pos < cache->last_alloc_end - cache->buffer_start) {
         cache->buffer_pos = cache->last_alloc_end - cache->buffer_start;
@@ -3366,7 +3366,7 @@ void emu64::dirty_check(int tile, int n_tiles, int do_texture_matrix) {
                     img_addr = tex_info_p->img_addr;
 
                     dol_fmt.raw = cvtN64ToDol(tex_info_p->format, tex_info_p->size);
-                    if (((u32)img_addr & 0x1F) != 0) {
+                    if (((uintptr_t)img_addr & 0x1F) != 0) {
 #ifndef TARGET_PC
                         /* Translation: Texture (%08x) alignment isn't 32 bytes */
                         this->Printf0("テクスチャ(%08x)のアライメントが３２バイトになっていません\n", img_addr);
@@ -3872,7 +3872,7 @@ void emu64::dl_G_LOADTLUT() {
 
                 this->tlut_addresses[tlut_name] = tlut_addr;
                 if (tlut_addr != nullptr) {
-                    if (((u32)tlut_addr & (0x1F)) != 0) {
+                    if (((uintptr_t)tlut_addr & 0x1F) != 0) {
 #ifndef TARGET_PC
                         /* The alignment of the palette (%08x) is not 32 bytes. */
                         EMU64_PRINTF(
