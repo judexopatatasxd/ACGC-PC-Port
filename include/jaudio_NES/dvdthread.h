@@ -8,6 +8,12 @@ typedef void (*Jac_DVDCallback)(u32);
 typedef s32 (*TaskCallback)(void*);
 typedef void (*ErrorCallback)(char*, u8* addr);
 
+#ifdef TARGET_PC
+typedef uintptr_t Jac_DVDAddress;
+#else
+typedef u32 Jac_DVDAddress;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,11 +24,14 @@ extern s32 DVDT_AddTask(TaskCallback callback, void* stackp, size_t len);
 extern void jac_dvdproc_init();
 extern void* jac_dvdproc(void*);
 extern s32 DVDT_LoadtoARAM_Main(void* arg);
-extern s32 DVDT_LoadtoARAM(u32 owner, char* name, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
+extern s32 DVDT_LoadtoARAM(u32 owner, char* name, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
+                          Jac_DVDCallback callback);
 extern s32 DVDT_ARAMtoDRAM_Main(void* arg);
 extern s32 DVDT_DRAMtoARAM_Main(void* arg);
-extern s32 DVDT_ARAMtoDRAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
-extern s32 DVDT_DRAMtoARAM(u32 owner, u32 dst, u32 src, u32 length, u32* status, Jac_DVDCallback callback);
+extern s32 DVDT_ARAMtoDRAM(u32 owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
+                          Jac_DVDCallback callback);
+extern s32 DVDT_DRAMtoARAM(u32 owner, Jac_DVDAddress dst, Jac_DVDAddress src, u32 length, u32* status,
+                          Jac_DVDCallback callback);
 extern s32 DVDT_CheckFile(char* file);
 extern s32 DVDT_CheckPass(u32 owner, u32* status, Jac_DVDCallback callback);
 extern s32 Jac_CheckFile(char* file);
@@ -32,6 +41,7 @@ extern BOOL Jac_DVDOpen(char* name, DVDFileInfo* info);
 
 #ifdef TARGET_PC
 void pc_dvd_process_all_tasks(void);
+void DVDT_RegisterPointerToken(u32 token, const void* ptr);
 #endif
 
 #ifdef __cplusplus
