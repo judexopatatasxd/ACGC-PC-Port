@@ -266,8 +266,8 @@ void Nas_HeapInit(ALHeap* heap, u8* p2, s32 p3) {
         heap->current = NULL;
         heap->last = NULL;
     } else {
-        length = p3 - ((u32)p2 & 0x1F);
-        heap->base = (u8*)ALIGN_NEXT((u32)p2, 32);
+        length = p3 - ((uintptr_t)p2 & 0x1F);
+        heap->base = (u8*)ALIGN_NEXT((uintptr_t)p2, 32);
         heap->current = heap->base;
         heap->length = length;
         heap->last = NULL;
@@ -1369,7 +1369,7 @@ void __RestoreAddr(Wavelookuptable* a, smzwavetable* b) {
         u8* o = a_sample + a->_08;
         if (b_sample >= a_sample && b_sample < o) {
             // fakematch?
-            b->sample = (u8*)((u32)a->_04 + (b->sample - (u32)a->sample));
+            b->sample = (u8*)a->_04 + (b_sample - a_sample);
             if (EXGTYPE == 0) {
                 b->medium = a->medium;
             } else {
