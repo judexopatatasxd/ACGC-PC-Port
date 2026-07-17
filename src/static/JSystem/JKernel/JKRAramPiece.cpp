@@ -12,7 +12,7 @@
 JSUList<JKRAMCommand> JKRAramPiece::sAramPieceCommandList;
 OSMutex JKRAramPiece::mMutex;
 
-JKRAMCommand* JKRAramPiece::prepareCommand(int direction, u32 source, u32 destination, u32 length,
+JKRAMCommand* JKRAramPiece::prepareCommand(int direction, ARQAddress source, ARQAddress destination, u32 length,
                                            JKRAramBlock* aramBlock, JKRAMCommand::AMCommandCallback callback) {
     JKRAMCommand* cmd = new (JKRGetSystemHeap(), -4) JKRAMCommand();
     cmd->mDirection = direction;
@@ -29,14 +29,14 @@ void JKRAramPiece::sendCommand(JKRAMCommand* cmd) {
     JKRAramPiece::startDMA(cmd);
 }
 
-JKRAMCommand* JKRAramPiece::orderAsync(int direction, u32 source, u32 destination, u32 length, JKRAramBlock* aramBlock,
+JKRAMCommand* JKRAramPiece::orderAsync(int direction, ARQAddress source, ARQAddress destination, u32 length, JKRAramBlock* aramBlock,
                                        JKRAMCommand::AMCommandCallback callback) {
     JKRAramPiece::lock();
 
     if (!JKR_ISALIGNED32(source) || !JKR_ISALIGNED32(destination)) {
         JLOGF("direction = %x\n", direction);
-        JLOGF("source = %x\n", source);
-        JLOGF("destination = %x\n", destination);
+        JLOGF("source = %lx\n", (unsigned long)source);
+        JLOGF("destination = %lx\n", (unsigned long)destination);
         JLOGF("length = %x\n", length);
         JPANICLINE(102);
     }
@@ -81,7 +81,7 @@ bool JKRAramPiece::sync(JKRAMCommand* cmd, BOOL noBlock) {
     }
 }
 
-bool JKRAramPiece::orderSync(int direction, u32 source, u32 destination, u32 length, JKRAramBlock* aramBlock) {
+bool JKRAramPiece::orderSync(int direction, ARQAddress source, ARQAddress destination, u32 length, JKRAramBlock* aramBlock) {
     JKRAramPiece::lock();
 
     JKRAMCommand* cmd = JKRAramPiece::orderAsync(direction, source, destination, length, aramBlock, nullptr);
@@ -94,18 +94,18 @@ bool JKRAramPiece::orderSync(int direction, u32 source, u32 destination, u32 len
 
 void JKRAramPiece::startDMA(JKRAMCommand* cmd) {
     if (cmd->mDirection == ARAM_DIR_ARAM_TO_MRAM) {
-        DCInvalidateRange((u8*)cmd->mDestination, cmd->mLength);
+        DCInvalidateRange((u8*)(uintptr_t)cmd->mDestination, cmd->mLength);
     } else { /* cmd->mDirection == ARAM_DIR_MRAM_TO_ARAM */
-        DCStoreRange((u8*)cmd->mSource, cmd->mLength);
+        DCStoreRange((u8*)(uintptr_t)cmd->mSource, cmd->mLength);
     }
 
     ARQPostRequest(cmd, 0, cmd->mDirection, 0, cmd->mSource, cmd->mDestination, cmd->mLength, JKRAramPiece::doneDMA);
 }
 
-void JKRAramPiece::doneDMA(u32 param) {
-    JKRAMCommand* cmd = (JKRAMCommand*)param;
+void JKRAramPiece::doneDMA(ARQCallbackArg param) {
+    JKRAMCommand* cmd = (JKRAMCommand*)(uintptr_t)param;
     if (cmd->mDirection == ARAM_DIR_ARAM_TO_MRAM) {
-        DCInvalidateRange((u8*)cmd->mDestination, cmd->mLength);
+        DCInvalidateRange((u8*)(uintptr_t)cmd->mDestination, cmd->mLength);
     }
     if (cmd->mCallbackType != ARAMPIECE_DONE_CALLBACK) {
         if (cmd->mCallbackType == ARAMPIECE_DONE_DECOMPRESS) {
