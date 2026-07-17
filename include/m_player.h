@@ -26,6 +26,7 @@ extern "C" {
 #define mPlayer_RADIO_EXERCISE_COMMAND_RING_BUFFER_SIZE 8
 
 typedef struct player_actor_s PLAYER_ACTOR;
+typedef uintptr_t mPlayer_net_catch_label_t;
 
 #define mPlayer_FORCE_POSITION_ANGLE_NONE 0
 // where is (1 << 0) ??
@@ -2131,15 +2132,15 @@ struct player_actor_s {
     /* 0x0E68 */ int umbrella_state;
     /* 0x0E6C */ s8 unable_hand_item_in_demo;
     /* 0x0E6D */ s8 able_hand_all_item_in_demo;
-    /* 0x0E70 */ u32 item_net_catch_label;
+    /* 0x0E70 */ mPlayer_net_catch_label_t item_net_catch_label;
     /* 0x0E74 */ s8 item_net_catch_type;
     /* 0x0E75 */ s8 item_net_has_catch;
-    /* 0x0E78 */ u32 item_net_catch_label_request_table[mPlayer_NET_CATCH_TABLE_COUNT];
+    /* 0x0E78 */ mPlayer_net_catch_label_t item_net_catch_label_request_table[mPlayer_NET_CATCH_TABLE_COUNT];
     /* 0x0E98 */ s8 item_net_catch_type_request_table[mPlayer_NET_CATCH_TABLE_COUNT];
     /* 0x0EA0 */ xyz_t item_net_catch_pos_request_table[mPlayer_NET_CATCH_TABLE_COUNT];
     /* 0x0F00 */ f32 item_net_catch_radius_request_table[mPlayer_NET_CATCH_TABLE_COUNT];
     /* 0x0F20 */ int item_net_catch_request_use_count;
-    /* 0x0F24 */ u32 item_net_catch_label_request_force;
+    /* 0x0F24 */ mPlayer_net_catch_label_t item_net_catch_label_request_force;
     /* 0x0F28 */ s8 item_net_catch_type_request_force;
     /* 0x0F2C */ int item_net_catch_insect_idx;
 #if VERSION >= VER_GAFU01_00
@@ -2267,9 +2268,10 @@ struct player_actor_s {
     /* 0x12F8 */ int (*request_main_demo_get_golden_axe_wait_all_proc)(GAME*, int);
     /* 0x12FC */ int (*check_request_main_priority_proc)(GAME*, int);
     /* 0x1300 */ void* (*get_door_label_proc)(GAME*);
-    /* 0x1304 */ int (*Set_Item_net_catch_request_table_proc)(ACTOR*, GAME*, u32, s8, const xyz_t*, f32);
+    /* 0x1304 */ int (*Set_Item_net_catch_request_table_proc)(ACTOR*, GAME*, mPlayer_net_catch_label_t, s8,
+                                                              const xyz_t*, f32);
     /* 0x1308 */ f32 (*Get_Item_net_catch_swing_timer_proc)(ACTOR*, GAME*);
-    /* 0x130C */ int (*Set_Item_net_catch_request_force_proc)(ACTOR*, GAME*, u32, s8);
+    /* 0x130C */ int (*Set_Item_net_catch_request_force_proc)(ACTOR*, GAME*, mPlayer_net_catch_label_t, s8);
     /* 0x1310 */ void (*Set_force_position_angle_proc)(GAME*, const xyz_t*, const s_xyz*, u8);
     /* 0x1314 */ u8 (*Get_force_position_angle_proc)(GAME*, xyz_t*, s_xyz*);
     /* 0x1318 */ int (*Get_WadeEndPos_proc)(GAME*, xyz_t*);
@@ -2279,8 +2281,8 @@ struct player_actor_s {
     /* 0x1328 */ int (*check_able_change_camera_normal_index_proc)(ACTOR*);
     /* 0x132C */ int (*Check_able_force_speak_label_proc)(GAME*, void*);
     /* 0x1330 */ int (*check_cancel_request_change_proc_index_proc)(int);
-    /* 0x1334 */ u32 (*Get_item_net_catch_label_proc)(ACTOR*);
-    /* 0x1338 */ int (*Change_item_net_catch_label_proc)(ACTOR*, u32, s8);
+    /* 0x1334 */ mPlayer_net_catch_label_t (*Get_item_net_catch_label_proc)(ACTOR*);
+    /* 0x1338 */ int (*Change_item_net_catch_label_proc)(ACTOR*, mPlayer_net_catch_label_t, s8);
     /* 0x133C */ int (*Check_StopNet_proc)(ACTOR*, xyz_t*);
     /* 0x1340 */ int (*Check_HitAxe_proc)(ACTOR*, xyz_t*);
     /* 0x1344 */ int (*Check_VibUnit_OneFrame_proc)(ACTOR*, const xyz_t*);

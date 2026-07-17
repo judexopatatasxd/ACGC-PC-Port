@@ -2471,7 +2471,8 @@ static void Player_actor_Reset_Item_net_catch_request_table(ACTOR* actorx) {
     player->item_net_catch_label_request_force = 0;
 }
 
-static int Player_actor_Set_Item_net_catch_request_table(ACTOR* actorx, GAME* game, u32 label, s8 type,
+static int Player_actor_Set_Item_net_catch_request_table(ACTOR* actorx, GAME* game, mPlayer_net_catch_label_t label,
+                                                         s8 type,
                                                          const xyz_t* pos_p, f32 radius) {
     PLAYER_ACTOR* player = (PLAYER_ACTOR*)actorx;
 
@@ -2492,7 +2493,8 @@ static int Player_actor_Set_Item_net_catch_request_table(ACTOR* actorx, GAME* ga
     return FALSE;
 }
 
-static int Player_actor_Set_Item_net_catch_request_force(ACTOR* actorx, GAME* game, u32 label, s8 type) {
+static int Player_actor_Set_Item_net_catch_request_force(ACTOR* actorx, GAME* game, mPlayer_net_catch_label_t label,
+                                                         s8 type) {
     PLAYER_ACTOR* player = (PLAYER_ACTOR*)actorx;
 
     if (mPlib_get_player_actor_main_index(game) == mPlayer_INDEX_SWING_NET &&
@@ -4535,7 +4537,7 @@ static void Player_actor_cancel_request_change_proc_index_by_A_btn(ACTOR* actorx
     }
 }
 
-static u32 Player_actor_Get_item_net_catch_label(ACTOR* actorx) {
+static mPlayer_net_catch_label_t Player_actor_Get_item_net_catch_label(ACTOR* actorx) {
     PLAYER_ACTOR* player = (PLAYER_ACTOR*)actorx;
 
     switch (player->now_main_index) {
@@ -4549,7 +4551,7 @@ static u32 Player_actor_Get_item_net_catch_label(ACTOR* actorx) {
     }
 }
 
-static int Player_actor_Change_item_net_catch_label(ACTOR* actorx, u32 label, s8 insect_type) {
+static int Player_actor_Change_item_net_catch_label(ACTOR* actorx, mPlayer_net_catch_label_t label, s8 insect_type) {
     PLAYER_ACTOR* player = (PLAYER_ACTOR*)actorx;
     aINS_INSECT_ACTOR* insect_actor = (aINS_INSECT_ACTOR*)label;
 

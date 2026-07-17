@@ -2798,11 +2798,11 @@ extern int mPlib_Check_StopNet(xyz_t* pos_p) {
     return GET_PLAYER_ACTOR_NOW()->Check_StopNet_proc(GET_PLAYER_ACTOR_NOW_ACTOR(), pos_p);
 }
 
-extern u32 mPlib_Get_item_net_catch_label(void) {
+extern mPlayer_net_catch_label_t mPlib_Get_item_net_catch_label(void) {
     return GET_PLAYER_ACTOR_NOW()->Get_item_net_catch_label_proc(GET_PLAYER_ACTOR_NOW_ACTOR());
 }
 
-extern int mPlib_Change_item_net_catch_label(u32 label, s8 type) {
+extern int mPlib_Change_item_net_catch_label(mPlayer_net_catch_label_t label, s8 type) {
     return GET_PLAYER_ACTOR_NOW()->Change_item_net_catch_label_proc(GET_PLAYER_ACTOR_NOW_ACTOR(), label, type);
 }
 

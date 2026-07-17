@@ -151,8 +151,8 @@ static int aIBT_check_player_net_sub(xyz_t* net_pos, aINS_INSECT_ACTOR* insect) 
 
     ret = FALSE;
     if (mPlib_Check_StopNet(net_pos) == TRUE) {
-        u32 label = mPlib_Get_item_net_catch_label();
-        if (label == (u32)insect) {
+        uintptr_t label = mPlib_Get_item_net_catch_label();
+        if (label == (uintptr_t)insect) {
             ret = TRUE;
         }
     }
@@ -184,8 +184,8 @@ static int aIBT_check_player_net2(aINS_INSECT_ACTOR* insect) {
 
     ret = FALSE;
     if (mPlib_Check_StopNet(&pos) == TRUE) {
-        u32 label = mPlib_Get_item_net_catch_label();
-        if (label == (u32)insect) {
+        uintptr_t label = mPlib_Get_item_net_catch_label();
+        if (label == (uintptr_t)insect) {
             insect->s32_work1 = 1;
         } else {
             x = pos.x - insect->tools_actor.actor_class.world.position.x;
@@ -565,9 +565,9 @@ void aIBT_actor_move(ACTOR* actor, GAME* game) {
     aINS_INSECT_ACTOR* insect = (aINS_INSECT_ACTOR*)actor;
     GAME_PLAY* play = (GAME_PLAY*)game;
 
-    u32 label = mPlib_Get_item_net_catch_label();
+    uintptr_t label = mPlib_Get_item_net_catch_label();
 
-    if (label == (u32)actor) {
+    if (label == (uintptr_t)actor) {
         aIBT_setupAction(insect, aIBT_ACTION_LET_ESCAPE, game);
     } else {
         if (insect->insect_flags.bit_3 == TRUE && insect->insect_flags.bit_2 == FALSE) {

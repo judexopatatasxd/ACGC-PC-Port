@@ -500,9 +500,9 @@ static void aIKR_setupAction(aINS_INSECT_ACTOR* insect, int action, GAME* game) 
  */
 static void aIKR_actor_move(ACTOR* actorx, GAME* game) {
     aINS_INSECT_ACTOR* insect = (aINS_INSECT_ACTOR*)actorx;
-    u32 catch_label = mPlib_Get_item_net_catch_label();
+    uintptr_t catch_label = mPlib_Get_item_net_catch_label();
 
-    if (catch_label == (u32)actorx) {
+    if (catch_label == (uintptr_t)actorx) {
         insect->alpha0 = 255;
         aIKR_setupAction(insect, aIKR_ACT_LET_ESCAPE, game);
     } else {
