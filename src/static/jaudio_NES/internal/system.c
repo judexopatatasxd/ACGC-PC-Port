@@ -12,6 +12,7 @@
 #include <dolphin/os.h>
 #ifdef TARGET_PC
 #include <dolphin/ar.h>
+#include <stdlib.h>
 #endif
 
 #define MK_BGLOAD_MSG(retData, tableType, id, loadStatus) \
@@ -238,6 +239,10 @@ static void pc_swap_perc_ptr_array(u32* perc_tbl, s32 n_perc) {
 }
 
 static u32 pc_swap_bank_init_count = 0;
+
+#ifdef PC_64BIT
+#include "system_arm64.inc"
+#endif
 #endif /* TARGET_PC */
 
 static s32 Nas_GetSyncDummy(u8* param0, s32 param1);
@@ -259,7 +264,7 @@ static s32 __Kill_Bank(s32 bank_id);
 static ArcHeader* __Get_ArcHeader(s32 table_type);
 static s32 __Nas_StartSeq(s32 group_idx, s32 seq_id, s32 param);
 static u8* __Load_Bank(s32 table_type, s32 id, s32* did_alloc);
-static u32 __Load_Wave(s32 wave_id, u32* medium, s32 no_load);
+static uintptr_t __Load_Wave(s32 wave_id, u32* medium, s32 no_load);
 static void* __Check_Cache(s32 table_type, s32 id);
 static void __WaveTouch(wtstr* wavetouch_str, u32 ram_addr, WaveMedia* wave_media);
 static Bgload* Nas_BgCopyDisk(s32 dev_medium, u8* src, u8* dst, u32 size, s32 medium, s32 n_chunks, OSMesgQueue* mq,
@@ -839,11 +844,11 @@ static u8* __Load_Seq(s32 seq_id) {
     return (u8*)__Load_Bank(SEQUENCE_TABLE, seq_id, &did_alloc);
 }
 
-static u32 __Load_Wave_Check(s32 wave_id, u32* medium) {
+static uintptr_t __Load_Wave_Check(s32 wave_id, u32* medium) {
     return __Load_Wave(wave_id, medium, TRUE);
 }
 
-static u32 __Load_Wave(s32 wave_id, u32* medium, s32 no_load) {
+static uintptr_t __Load_Wave(s32 wave_id, u32* medium, s32 no_load) {
     void* ram_p;
     s32 link_id = __Link_BankNum(WAVE_TABLE, wave_id);
     ArcHeader* header = __Get_ArcHeader(WAVE_TABLE);
@@ -855,7 +860,7 @@ static u32 __Load_Wave(s32 wave_id, u32* medium, s32 no_load) {
         }
 
         *medium = MEDIUM_RAM;
-        return (u32)ram_p;
+        return (uintptr_t)ram_p;
     }
 
     if (header->entries[wave_id].cacheType == CACHE_LOAD_EITHER_NOSYNC || no_load == TRUE) {
@@ -866,7 +871,7 @@ static u32 __Load_Wave(s32 wave_id, u32* medium, s32 no_load) {
     ram_p = __Load_Bank(WAVE_TABLE, wave_id, &no_load);
     if (ram_p != NULL) {
         *medium = MEDIUM_RAM;
-        return (u32)ram_p;
+        return (uintptr_t)ram_p;
     }
 
     *medium = header->entries[wave_id].medium;
@@ -1063,6 +1068,10 @@ static ArcHeader* __Get_ArcHeader(s32 table_type) {
 #define BANK_ENTRY(ctrl, idx) (((u32*)((u32)ctrl)) + idx)
 
 static void Nas_BankOfsToAddr_Inner(s32 bank_id, u8* ctrl_p, WaveMedia* wave_media) {
+#ifdef PC_64BIT
+    pc_bank64_decode(bank_id, ctrl_p, wave_media);
+    return;
+#else
     u32 ofs;
     u32 inst_ofs;
     voicetable* inst;
@@ -1192,6 +1201,7 @@ static void Nas_BankOfsToAddr_Inner(s32 bank_id, u8* ctrl_p, WaveMedia* wave_med
     AG.voice_info[bank_id].percussion = (perctable**)*BANK_ENTRY(ctrl_p, 0);
     AG.voice_info[bank_id].effects = (percvoicetable*)*BANK_ENTRY(ctrl_p, 1);
     AG.voice_info[bank_id].instruments = (voicetable**)BANK_ENTRY(ctrl_p, 2);
+#endif
 }
 
 #undef OFS2RAM
@@ -1297,7 +1307,7 @@ static s32 Nas_StartDma(OSIoMesg* ioMsg, s32 priority, s32 direction, u32 device
     /* device_addr is an ARAM offset (relative to audiorom start).
      * GetNeosRomTop() gives the base ARAM address for audiorom data. */
     u32 aram_offset = device_addr + GetNeosRomTop();
-    ARStartDMA(1 /* ARAM→MRAM */, (u32)dram_addr, aram_offset, size);
+    ARStartDMA(1 /* ARAM→MRAM */, (ARQAddress)(uintptr_t)dram_addr, aram_offset, size);
 
     /* Send completion message so callers that do Z_osRecvMesg(BLOCK) unblock */
     if (mq != NULL) {
