@@ -136,15 +136,15 @@ static void Nap_AudioSysProcess(AudioPort* port) {
             AG.main_group.subtracks[0]->changes.flags.volume = TRUE;
             break;
         case AUDIOCMD_SET_VFRAME_CALLBACK:
-            NA_VFRAME_CALLBACK = (VFRAME_CALLBACK)port->param.asU32;
+            NA_VFRAME_CALLBACK = (VFRAME_CALLBACK)port->param.asVoidPtr;
             break;
         case AUDIOCMD_SET_CALLBACK:
             if (port->command.arg2 == AUDIO_CALLBACK_SOUND) {
-                NA_SOUND_CALLBACK = (SOUND_CALLBACK)port->param.asU32;
+                NA_SOUND_CALLBACK = (SOUND_CALLBACK)port->param.asVoidPtr;
             } else if (port->command.arg2 == AUDIO_CALLBACK_DACOUT) {
-                NA_DACOUT_CALLBACK = (DACOUT_CALLBACK)port->param.asU32;
+                NA_DACOUT_CALLBACK = (DACOUT_CALLBACK)port->param.asVoidPtr;
             } else {
-                AG.seq_callbacks[port->command.arg2] = (SequenceCallback)port->param.asU32;
+                AG.seq_callbacks[port->command.arg2] = (SequenceCallback)port->param.asVoidPtr;
             }
             break;
         case AUDIOCMD_SET_PERC_BANK:
@@ -241,6 +241,20 @@ extern void Nap_SetF32(u32 cmd, f32 param) {
 
 extern void Nap_SetS32(u32 cmd, s32 param) {
     Nap_PortSet(cmd, (s32*)&param);
+}
+
+extern void Nap_SetPtr(u32 cmd, const void* param) {
+    u16 write_pos = AG.thread_cmd_write_pos;
+    u16 next_write_pos = write_pos + 1;
+
+    if ((u16)(next_write_pos - AG.thread_cmd_read_pos) > AUDIO_PORT_CMD_CAPACITY) {
+        return;
+    }
+
+    AudioPort* port_p = &AG.audio_port_cmds[write_pos & AUDIO_PORT_CMD_MASK];
+    port_p->raw_cmd = cmd;
+    port_p->param.asVoidPtr = (void*)param;
+    AG.thread_cmd_write_pos = next_write_pos;
 }
 
 extern void Nap_SetS8(u32 cmd, s8 param) {
