@@ -1,4 +1,4 @@
-# Animal Crossing PC Port
+# Animal Crossing Android
 
 A native PC port of Animal Crossing (GameCube) built on top of the [ac-decomp](https://github.com/ACreTeam/ac-decomp) decompilation project.
 
